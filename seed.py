@@ -27,8 +27,8 @@ def load_studies():
             continue
 
         # Stop after the first 5000 rows for now
-        if count_studies > 5000:
-            break
+        # if count_studies > 5000:
+        #     break
 
         row = row.rstrip().split('\t')
 
@@ -98,8 +98,8 @@ def load_studies_terms():
             continue
 
         # Stop after 5000 lines
-        if count_studies_terms > 5000:
-            break
+        # if count_studies_terms > 5000:
+        #     break
 
         # Parse txt file and convert to appropriate data types for seeding
         row = row.rstrip().split('\t')
@@ -115,7 +115,7 @@ def load_studies_terms():
             continue
 
         pmid = int(row[1])
-        word = row[2].strip('\"')
+        word = row[2].strip('\"'). #replace period with space 
         freq = float(row[3])
 
         # Check if the word is already in Term; if not, add it

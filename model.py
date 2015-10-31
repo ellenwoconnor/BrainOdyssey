@@ -11,7 +11,7 @@ db = SQLAlchemy()
 
 class Location(db.Model):
     """An individual pinpoint location in the brain represented by an x-y-z
-    coordinate (each an integer between 0-100)."""
+    coordinate."""
 
     __tablename__ = "locations"
 
@@ -57,7 +57,8 @@ class Activation(db.Model):
     def __repr__(self):
         """Displays info about an activation."""
 
-        return "<Activation pmid=%d space=%s" % (self.pmid, self.location_id)
+        return "<Activation pmid=%d location_id=%s" % (self.pmid,
+                                                       self.location_id)
 
 
 class Study(db.Model):
