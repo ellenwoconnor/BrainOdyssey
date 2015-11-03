@@ -115,7 +115,7 @@ def load_studies_terms():
             continue
 
         pmid = int(row[1])
-        word = row[2].strip('\"'). #replace period with space 
+        word = row[2].strip('\"'). #TODO reseed data replacing period with space 
         freq = float(row[3])
 
         # Check if the word is already in Term; if not, add it
