@@ -79,7 +79,11 @@ def load_studies():
         count_studies += 1
 
 def load_studies_terms():
-    """Load info from studies_terms.txt into StudyTerm & Term tables."""
+    """Load info from studies_terms.txt into StudyTerm & Term tables.
+
+    File format: R ID \t pmid \t word \t frequency
+    Source: Neurosynth features.txt, transformed in R to long format."""
+
 
     print "Studies_terms.txt seeding"
 
@@ -115,7 +119,7 @@ def load_studies_terms():
             continue
 
         pmid = int(row[1])
-        word = row[2].strip('\"'). #TODO reseed data replacing period with space 
+        word = row[2].strip('\"').replace(".", " ")
         freq = float(row[3])
 
         # Check if the word is already in Term; if not, add it
@@ -151,7 +155,8 @@ def load_clusters():
         word = row[3].strip()
 
         # Check if word is in our list of key terms. If it is, add to
-        # TermCluster table to allow for lookup later
+        # TermCluster table to allow for lookup later (see seed.py for TODO)
+
         if Term.check_for_term(word) is True:
             term_cluster_to_add = TermCluster(word=word, cluster_id=cluster)
             db.session.add(term_cluster_to_add)
