@@ -146,7 +146,7 @@ def load_clusters():
 
     count_clusters = 0
 
-    for row in open('topics.csv'):
+    for row in open('seed_data/topics.csv'):
 
         row = row.rstrip().split(',')
 
@@ -155,7 +155,7 @@ def load_clusters():
         word = row[3].strip()
 
         # Check if word is in our list of key terms. If it is, add to
-        # TermCluster table to allow for lookup later (see seed.py for TODO)
+        # TermCluster table to allow for lookup later (see model.py for TODO)
 
         if Term.check_for_term(word) is True:
             term_cluster_to_add = TermCluster(word=word, cluster_id=cluster)
