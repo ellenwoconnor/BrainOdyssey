@@ -382,9 +382,9 @@ def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale=1):
     clusters = {}
     for (cluster_id, word) in associations:
         if cluster_id not in clusters:
-            clusters[cluster_id] = {'name': cluster_id, 'children': [word]}
+            clusters[cluster_id] = {'name': cluster_id, 'children': [leaves[word]]}
         else:
-            clusters[cluster_id]['children'].append(word)
+            clusters[cluster_id]['children'].append(leaves[word])
 
     # Put the clusters in the root dictionary
     # Output: {'name': root, children: [{'name': id, 'children': []}, ...]
