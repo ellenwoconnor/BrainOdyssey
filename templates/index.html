@@ -69,7 +69,7 @@ line.link {
     var link = svg.selectAll(".link"),
         node = svg.selectAll(".node");
 
-    d3.json("new_json.json", function(error, json) {
+    d3.json("/static/new_json.json", function(error, json) {
       if (error) throw error;
 
       root = json;
@@ -161,12 +161,12 @@ line.link {
 
     // MY SCRIPT   ------------------------------------------------------------
 
-    $('#submit-xyz').on('click', getJson);
+    // $('#submit-xyz').on('click', getJson);
 
-    function getJson(evt) {
-        console.log("Attempting to get JSON.");
-        $.get('/d3.json', {x_coord:-60, y_coord:0, z_coord:-30}, renderD3);
-    };
+    // function getJson(evt) {
+    //     console.log("Attempting to get JSON.");
+    //     $.get('/d3.json', {x_coord:-60, y_coord:0, z_coord:-30}, renderD3);
+    // };
     
     // function renderD3(results) {
     //     $('#d3_here').load(d3 from the JSON data);
