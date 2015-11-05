@@ -9,7 +9,13 @@ from sqlalchemy.sql import label
 db = SQLAlchemy()
 
 ###########################################################################
-# Model definitions
+# MODEL DEFINITIONS
+###########################################################################
+
+
+###########################################################################
+# LOCATION TABLE 
+###########################################################################
 
 class Location(db.Model):
     """An individual pinpoint location in the brain represented by an x-y-z
@@ -26,6 +32,9 @@ class Location(db.Model):
 
     activation = db.relationship('Activation')
 
+
+### Retrieve xyz from db ######################################################
+
     @classmethod
     def check_by_xyz_space(cls, x=None, y=None, z=None, space=None):
         """Returns existing xyz instance of the class (None if no such
@@ -39,12 +48,19 @@ class Location(db.Model):
                                         cls.space == space).first()
         return location_obj
 
+###  Display coordinate information ############################################
+
     def __repr__(self):
         """Displays info about a location."""
+
         return "<Location id=%d x=%d y=%d z=%d label=%s space=%s>" % (
             self.location_id, self.x_coord, self.y_coord,
             self.z_coord, self.label, self.space)
 
+
+###########################################################################
+# ACTIVATION TABLE 
+###########################################################################
 
 class Activation(db.Model):
     """Peak activation coordinate reported in a study."""
@@ -66,6 +82,8 @@ class Activation(db.Model):
         return "<Activation pmid=%d location_id=%s>" % (self.pmid,
                                                        self.location_id)
 
+### Get studies reporting location ############################################
+
     @classmethod
     def get_pmids_from_xyz(cls, x_coord, y_coord, z_coord, radius=None):
         """Returns the PubMed IDs (unique identifiers) for any studies reporting
@@ -74,7 +92,7 @@ class Activation(db.Model):
         # If the radius is provided, use it get studies reporting activation
         # in locations within +/- n millimeters of xyz
         if radius:
-            print "I am in this function with radius", radius
+            print "I am getting all studies with radius", radius
             # Test with: terms = StudyTerm.get_terms_in_radius(-60, 0, -30, 3)
             pmids = db.session.query(cls.pmid).join(Location).filter(
                 Location.x_coord < (x_coord + radius),
@@ -105,6 +123,10 @@ class Activation(db.Model):
         # Return all studies matching the specified location
         return pmids
 
+###########################################################################
+# STUDY TABLE 
+###########################################################################
+
 class Study(db.Model):
     """An individual study by PubMed ID."""
 
@@ -117,6 +139,9 @@ class Study(db.Model):
     year = db.Column(db.Integer)
     journal = db.Column(db.String(200))
 
+
+    ### Retrieve a study from db ########################################
+
     @classmethod
     def get_study_by_pmid(cls, pmid):
         """Returns existing instance of Study class associated
@@ -127,11 +152,18 @@ class Study(db.Model):
         study_obj = cls.query.filter(cls.pmid == pmid).first()
         return study_obj
 
+    ### Get information about a study ########################################
+
     def __repr__(self):
         """Displays info about a study."""
 
         return "<Study pmid=%d doi=%s title=%s year=%d>" % (
             self.pmid, self.doi, self.title, self.year)
+
+
+###########################################################################
+# STUDYTERM TABLE 
+###########################################################################
 
 
 class StudyTerm(db.Model):
@@ -149,11 +181,16 @@ class StudyTerm(db.Model):
     term = db.relationship('Term', backref="studies_terms")
     study = db.relationship('Study', backref="studies_terms")
 
+
+    ### Get information about a study topic ##################################
+
     def __repr__(self):
         """Displays info about a word associated with a study."""
 
         return "<StudyTerm word=%s pmid=%d frequency=%f>" % (
             self.word, self.pmid, self.frequency)
+
+    ### Retrieve terms assoc. with studies  ###################################
 
     @classmethod
     def get_terms_by_pmid(cls, pmids):
@@ -162,6 +199,8 @@ class StudyTerm(db.Model):
 
         Test with: pmids = [15737663, 16481375, 17121746, 21908871]"""
 
+        print "Getting all terms from studies", pmids
+
         terms = db.session.query(cls.word, cls.frequency).filter(
             cls.pmid.in_(pmids)).all()
 
@@ -169,11 +208,17 @@ class StudyTerm(db.Model):
         # List will be used to constrain the cluster search
         return terms, [term[0] for term in terms if term[1] > .05]
 
+    ### Normalize frequencies ##############################################
+
     @classmethod
     def transform_frequencies(cls, terms):
         """ TODO: 
         Normalize each frequency using the mean/sd frequency by word."""
 
+
+###########################################################################
+# TERM TABLE 
+###########################################################################
 
 class Term(db.Model):
     """A term extracted from study text."""
@@ -186,6 +231,8 @@ class Term(db.Model):
         """Displays info about a term."""
 
         return "<Terms term=%s>" % (self.word)
+
+    ### Check if term in db ################################################
 
     @classmethod
     def check_for_term(cls, word):
@@ -205,6 +252,9 @@ class Term(db.Model):
         else:
             return True
 
+###########################################################################
+# TERMCLUSTER TABLE 
+###########################################################################
 
 class TermCluster(db.Model):
     """An association between a term and a topic cluster."""
@@ -224,6 +274,9 @@ class TermCluster(db.Model):
         return "<TermCluster id=%d term=%s cluster_id=%d>" % (
             self.termcluster_id, self.term, self.cluster_id)
 
+
+    ### Get "popular" clusters f###############################################
+
     @classmethod
     def get_top_clusters(cls, terms):
         """Returns the 15 'most relevant' topic clusters given some
@@ -234,14 +287,19 @@ class TermCluster(db.Model):
         Output should be: [308, 228, 133, 325, 0, 197, 204, 276, 287, 373, 39, 59, 100, 123, 210]
         """
 
+        print "Getting the top clusters associated with terms", terms
+
         clusters = db.session.query(cls.cluster_id).filter(
             cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
             func.count(cls.word))).limit(15).all()
 
         return [cluster[0] for cluster in clusters]
 
+
+    ### Get information about a study ########################################
+
     @classmethod
-    def get_word_cluster_pairs(clusters, words):
+    def get_word_cluster_pairs(cls, clusters, words):
         """Returns a list of cluster-word pairs.
 
         Test with:
@@ -249,12 +307,17 @@ class TermCluster(db.Model):
         words = [u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer', u'alzheimer disease', u'anterior', u'anterior cingulate', u'anxiety', u'asd', u'assessed using', u'associations', u'autism', u'autism spectrum', u'available', u'background', u'baseline', u'bases', u'canonical', u'caudate', u'caudate nucleus', u'change', u'characterized', u'children', u'cingulate', u'cingulate cortices', u'circuitry', u'cognitive deficits', u'cohort', u'compare', u'comprehensive', u'condition', u'confirm', u'contextual', u'control', u'control group', u'cortical', u'cortices', u'critical role', u'cross', u'cross modal', u'cues', u'decision', u'deficits', u'deficits', u'deficits', u'degeneration', u'demands', u'dementia', u'depending', u'developed', u'developing', u'development', u'difficulty', u'discrimination', u'disease', u'disease', u'disorders', u'dopamine', u'dopaminergic', u'drug', u'early', u'early stage', u'effortful', u'event', u'executive', u'exhibit', u'experiencing', u'explicit', u'face', u'face recognition', u'familiarity', u'female', u'frontal', u'frontal anterior', u'frontal cortices', u'frontotemporal', u'functioning', u'gender', u'grey', u'grey matter', u'group', u'group', u'group', u'groups', u'guide', u'guided', u'gyrus ifg', u'hand', u'handed', u'healthy adults', u'high functioning', u'higher level', u'hypoactivation', u'identification', u'ifg', u'ii', u'iii', u'imagery', u'impaired', u'impaired', u'impairments', u'impairments', u'impairments', u'included', u'included', u'individuals', u'induced', u'information', u'intended', u'interpret', u'inversely', u'involving', u'knowledge', u'listened', u'little', u'little known', u'lobe', u'male', u'matter', u'mean', u'mean age', u'meaning', u'measures', u'mediates', u'men', u'mental', u'mental states', u'methods functional', u'middle frontal', u'modal', u'modalities', u'model', u'modulating', u'needed', u'neuroanatomical', u'neurodegenerative', u'neutral', u'new', u'nucleus', u'observations', u'obtained', u'outcome', u'parkinson', u'parkinson disease', u'participated', u'particularly', u'patient', u'patient group', u'pattern', u'perception', u'periods', u'planning', u'play', u'play role', u'posterior cingulate', u'potentially', u'prefrontal posterior', u'prior', u'processes', u'protocol', u'provide evidence', u'range', u'rated', u'rating', u'recently', u'recognition', u'recruit', u'recruited', u'reflect', u'regard', u'relevant', u'require', u'required', u'requiring', u'research', u'role', u'second', u'seeking', u'session', u'set', u'seven', u'severe', u'sex', u'shift', u'shifting', u'short', u'showing', u'shown', u'situations', u'socially', u'speaker', u'speaker', u'specifically', u'spectrum', u'spectrum disorders', u'stage', u'stages', u'states', u'strategies', u'stress', u'strong', u'substrate', u'suggests', u'systematic', u'taking', u'task', u'task demands', u'temporal', u'traditional', u'trial', u'types', u'typically', u'typically developing', u'understanding', u'use', u'users', u'variant', u'varied', u'verbal', u'vocal', u'voice', u'women', u'years', u'young', u'young healthy']
         Output should be: [(133, u'disease'), (210, u'executive'), ...]
         """
+        print "Getting the associations with clusters", clusters
 
         associations = db.session.query(cls.cluster_id, cls.word).filter(
             cls.cluster_id.in_(clusters), cls.word.in_(words)).all()
 
         return associations
 
+
+###########################################################################
+# CLUSTER TABLE
+###########################################################################
 
 class Cluster(db.Model):
     """A topic cluster, identified by an integer from 0-200."""
@@ -268,6 +331,8 @@ class Cluster(db.Model):
 
         return "<Cluster id=%s>" % (self.id)
 
+    ### Check if cluster in db ########################################
+
     @classmethod
     def check_for_cluster(cls, cluster_id):
         """Returns True if a cluster_id is already in the table, False if not."""
@@ -277,9 +342,16 @@ class Cluster(db.Model):
         else:
             return True
 
+###########################################################################
+# OTHER
+###########################################################################
 
-# Generate a master dictionary with the xyz as the root node:
-def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale):
+
+def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale=1):
+    """ Returns a master dictionary with xyz at the root node.
+
+    Test with parameters: -60, 0, -30, 3
+    """
 
     # Get all of the needed information from the db first:
     # Get the studies citing activation at/near xyz
@@ -290,11 +362,10 @@ def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale):
     # Get the top clusters
     top_clusters = TermCluster.get_top_clusters(words)
     # Get the cluster-word associations
-    assocations = get_word_cluster_pairs(words, top_clusters)
+    associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
 
     # Make the root node:
-    xyz_loc = "x: " + str(x_coord) + ", y: " + str(y_coord) + 
-    ", z:" + str(z_coord)
+    xyz_loc = "x: " + str(x_coord) + ", y: " + str(y_coord) + ", z:" + str(z_coord)
     root_dict = {'name': xyz_loc, 'children': []}
 
     # Build the terminal nodes (leaves) first using (wd, freq) tuples
@@ -303,23 +374,24 @@ def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale):
     for (word, freq) in terms_for_dict:
         if word not in leaves:
             leaves[word] = {'name': word, 'size': freq * scale}
+        else:
+            leaves[word]['size'] += freq * scale
 
     # Embed the leaves in the clusters:
+    # Output: {cluster_id: {'name': ID, 'children': [...]}, ... }
     clusters = {}
     for (cluster_id, word) in associations:
-
-        clusters[cluster_id] = {'name': cluster_id, 'children': [word]}
+        if cluster_id not in clusters:
+            clusters[cluster_id] = {'name': cluster_id, 'children': [word]}
+        else:
+            clusters[cluster_id]['children'].append(word)
 
     # Put the clusters in the root dictionary
     # Output: {'name': root, children: [{'name': id, 'children': []}, ...]
     for cluster in top_clusters:
-        root_dict['children'].append({'name': cluster_id, 'children': []})
+        root_dict['children'].append(clusters[cluster])
 
-    # Put it all together using associations tuples:
-    for (cluster_id, word) in associations:
-
-
-
+    return root_dict
 
 ##############################################################################
 # Helper functions
