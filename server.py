@@ -2,12 +2,11 @@
 
 from jinja2 import StrictUndefined
 from model import Location,  Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
-# Normally, if you use an undefined variable in Jinja2, it fails silently.
-# This is horrible. Fix this so that, instead, it raises an error.
+# If you use an undefined variable in Jinja2, it raises an error.
 app.jinja_env.undefined = StrictUndefined
 
 @app.route('/')
@@ -17,12 +16,15 @@ def index():
     return render_template('index.html')
 
 @app.route('/d3.json')
-def get_json(x_coord, y_coord, z_coord, radius=3, scale=10000):
+def get_json(radius=3, scale=10000):
     """ Returns a master dictionary with xyz at the root node.
 
-    Test with parameters: -60, 0, -30, 3
+    Test with parameters: -60, 0, -30, 3    (Middle temporal gyrus)
     """
 
+    x_coord = float(request.args.get("xcoord"))
+    y_coord = float(request.args.get("ycoord"))
+    z_coord = float(request.args.get("zcoord"))
     # Get all of the needed information from the db first:
     # Get the studies citing activation at/near xyz
     pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)

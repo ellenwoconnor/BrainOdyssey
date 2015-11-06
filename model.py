@@ -287,7 +287,7 @@ class TermCluster(db.Model):
         Output should be: [308, 228, 133, 325, 0, 197, 204, 276, 287, 373, 39, 59, 100, 123, 210]
         """
 
-        print "Getting the top clusters associated with terms", terms
+        print "Getting the top clusters associated with terms", terms[0:25]
 
         clusters = db.session.query(cls.cluster_id).filter(
             cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
@@ -391,7 +391,7 @@ def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale=1):
     for cluster in top_clusters:
         root_dict['children'].append(clusters[cluster])
 
-    return root_dict
+    return root_dict, pmids, words, top_clusters, associations
 
 ##############################################################################
 # Helper functions
