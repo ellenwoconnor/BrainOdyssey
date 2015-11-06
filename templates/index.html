@@ -23,9 +23,22 @@ line.link {
 }
 
 #brainbrowser_here {
-  height:100%;
-  width:100%;
+  height:500px;
+  width:500px
+  ;
 }
+
+#d3_here {
+  height:500px;
+  width:500px;
+}
+
+#title {
+  height:80px;
+  border:2px solid black;
+  text-align: center;
+}
+
 
 </style>
 
@@ -39,8 +52,10 @@ line.link {
 
   <!--HTML BODY --> 
 
-    <h3>Brain Odyssey</h3>
-    <form>Brain coordinates:<br>
+    <div id="title">
+      <h3>Brain Odyssey</h3>
+    </div>
+    <form id="xyz_coord">Brain coordinates:<br>
         <label for="xcoord">X:
             <input type="text" name="xcoord" id="xcoord">
         </label><br>
@@ -174,14 +189,16 @@ line.link {
   // D3 SCRIPT END  ---------------------------------------------------------
 
   // Initialize D3 on form submission  ---------------------------------------
-  
+
     function getJson() {
       d3.select("#d3_here").selectAll("svg").remove();
-      var x = $("#xcoord");
-      var y = $("#ycoord");
-      var z = $("#zcoord");
+      var xVal = $("#xcoord");
+      var yVal = $("#ycoord");
+      var zVal = $("#zcoord");
       console.log("Getting JSON.");
-      $.get('/d3.json', {xcoord:"-60", ycoord:"0", zcoord:"-30"}, initializeD3);
+      var url = "/d3.json?" + $("#xyz_coord").serialize();
+      console.log(url);
+      $.get(url, initializeD3);
     }
 
     $('#submit-xyz').on('click', getJson);
