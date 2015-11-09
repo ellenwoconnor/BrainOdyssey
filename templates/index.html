@@ -13,11 +13,12 @@
   font: 10px sans-serif;
   pointer-events: none;
   text-anchor: middle;
+  color:white;
 }
 
 line.link {
   fill: none;
-  stroke: #9ecae1;
+  stroke: #9ecae1; 
   stroke-width: 1.5px;
 
 }
@@ -39,6 +40,15 @@ line.link {
   text-align: center;
 }
 
+body {
+  background-color:white;
+  color:black;
+}
+
+h3 {
+  font: 30px sans-serif;
+  font-weight: bold;
+}
 
 </style>
 
@@ -70,6 +80,7 @@ line.link {
 
 
     <div id="d3_here"></div>
+    <div id="brainbrowser_here"></div>
 
 
     <!-- BRAINBROWSER SCRIPT HERE -->
@@ -88,9 +99,9 @@ line.link {
             root; 
 
         var force = d3.layout.force()
-            .linkDistance(80)
-            .charge(-120)
-            .gravity(.05)
+            .linkDistance(20)
+            .charge(-300)
+            .gravity(.10)
             .size([width, height])
             .on("tick", tick);
 
@@ -167,6 +178,8 @@ line.link {
           } else {
             d.children = d._children;
             d._children = null;
+            console.log("a click!")
+            // stuff goes here
           }
           update();
         }

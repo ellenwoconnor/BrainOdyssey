@@ -109,7 +109,7 @@ class Activation(db.Model):
             # Test with: terms = StudyTerm.get_terms_in_radius(-60, 0, -30, 2)
             if len(pmids) < 1:
                 radius += 1
-                return cls.get_terms_in_radius(x_coord, y_coord, z_coord, radius)
+                return cls.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
 
         # If no radius is specified, query for exact location
         else:
@@ -124,7 +124,7 @@ class Activation(db.Model):
         return pmids
 
 ###########################################################################
-# STUDY TABLE 
+# STUDY TABLE
 ###########################################################################
 
 class Study(db.Model):
@@ -162,7 +162,7 @@ class Study(db.Model):
 
 
 ###########################################################################
-# STUDYTERM TABLE 
+# STUDYTERM TABLE
 ###########################################################################
 
 
@@ -202,9 +202,9 @@ class StudyTerm(db.Model):
         print "Getting all terms from studies", pmids
 
         terms = db.session.query(cls.word, cls.frequency).filter(
-            cls.pmid.in_(pmids)).all()
+            cls.pmid.in_(pmids)).order_by(desc(cls.frequency)).limit(100).all()
 
-        # Terms will be used to build a json dictionary; 
+        # Terms will be used to build a json dictionary;
         # List will be used to constrain the cluster search
         return terms, [term[0] for term in terms if term[1] > .05]
 
@@ -212,7 +212,7 @@ class StudyTerm(db.Model):
 
     @classmethod
     def transform_frequencies(cls, terms):
-        """ TODO: 
+        """ TODO:
         Normalize each frequency using the mean/sd frequency by word."""
 
 
@@ -291,7 +291,7 @@ class TermCluster(db.Model):
 
         clusters = db.session.query(cls.cluster_id).filter(
             cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
-            func.count(cls.word))).limit(15).all()
+            func.count(cls.word))).limit(12).all()
 
         return [cluster[0] for cluster in clusters]
 

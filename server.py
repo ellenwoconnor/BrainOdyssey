@@ -16,7 +16,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/d3.json')
-def get_json(radius=3, scale=10000):
+def get_json(radius=2, scale=70000):
     """ Returns a master dictionary with xyz at the root node.
 
     Test with parameters: -60, 0, -30, 3    (Middle temporal gyrus)
