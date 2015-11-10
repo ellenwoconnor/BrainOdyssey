@@ -1,0 +1,136 @@
+<!--
+  BrainBrowser Playground: A simple environment for learning how to use BrainBrowser
+
+  Copyright (c) 2014 Tarek Sherif
+ 
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+ 
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+ 
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>BrainBrowser Playground</title>
+    <script src="js/jquery-2.1.1.min.js"></script>
+    <script src="brainbrowser/brainbrowser.js"></script>
+    <script src="brainbrowser/core/tree-store.js"></script>
+    <script src="brainbrowser/lib/config.js"></script>
+    <script src="brainbrowser/lib/utils.js"></script>
+    <script src="brainbrowser/lib/events.js"></script> 
+    <script src="brainbrowser/lib/loader.js"></script> 
+    <script src="brainbrowser/lib/color-map.js"></script>
+    <script src="brainbrowser/surface-viewer.js"></script>
+    <script src="brainbrowser/surface-viewer/lib/three.js"></script>
+    <script src="brainbrowser/surface-viewer/lib/parse-intensity-data.js"></script> 
+    <script src="brainbrowser/surface-viewer/modules/annotations.js"></script>
+    <script src="brainbrowser/surface-viewer/modules/color.js"></script>
+    <script src="brainbrowser/surface-viewer/modules/loading.js"></script>
+    <script src="brainbrowser/surface-viewer/modules/rendering.js"></script>
+    <script src="brainbrowser/surface-viewer/modules/views.js"></script>
+    <script src="brainbrowser/volume-viewer.js"></script>
+    <script src="brainbrowser/volume-viewer/lib/display.js"></script>
+    <script src="brainbrowser/volume-viewer/lib/panel.js"></script>
+    <script src="brainbrowser/volume-viewer/lib/utils.js"></script>
+    <script src="brainbrowser/volume-viewer/modules/loading.js"></script>
+    <script src="brainbrowser/volume-viewer/modules/rendering.js"></script>
+    <script src="brainbrowser/volume-viewer/volume-loaders/overlay.js"></script>
+    <script src="brainbrowser/volume-viewer/volume-loaders/minc.js"></script>
+
+    <style>
+      #brainbrowser-div {
+        width: 400px;
+        height: 400px;
+      }
+    </style>
+    <script>
+      ////////////////////////////////////////////////
+      // CONFIGURATION REQUIRED BY THE SURFACE VIEWER
+      ////////////////////////////////////////////////
+      BrainBrowser.config.set("worker_dir", "brainbrowser/workers")
+    </script>
+  </head>
+  <body>
+    <h1>Welcome to the BrainBrowser Playground!</h1>
+    <p>
+      View the source for this page for instructions on how to get started.
+    </p>
+    <p>
+      You may find the following resources helpful:
+      <ul>
+        <li><a target="_blank" href="https://brainbrowser.cbrain.mcgill.ca/docs">BrainBrowser API Documentation</a></li>
+        <li><a target="_blank" href="https://brainbrowser.cbrain.mcgill.ca">The BrainBrowser Website</a></li>
+      </ul>
+    </p>
+    <!-- 
+      THIS IS WHERE THE VIEWER WILL BE INSERTED    
+    -->
+    <div id="brainbrowser-div"></div>
+    
+    <!-- 
+      PLACE YOUR UI CODE HERE    
+    -->
+
+    <script>
+      //////////////////////////////////////////////////////////////
+      // UNCOMMENT ONE OF THE FOLLOWING CODE BLOCKS TO GET STARTED
+      //
+      // PLACE YOUR VIEWER CODE WITHIN ONE OF THE CALLBACK FUNCTIONS
+      //
+      // NOTE THAT JQUERY 2.1.1 IS LOADED
+      //////////////////////////////////////////////////////////////
+
+      /////////////////////
+      //SURFACE VIEWER
+      /////////////////////
+      
+      BrainBrowser.SurfaceViewer.start("brainbrowser-div", function(viewer) {
+        viewer.render();
+        
+        viewer.loadModelFromURL("models/brain-surface.obj");
+      });
+
+      // ME TRYING TO GET THIS TO WORK 
+      // $("brainbrowser-div").on('click', function(event) {
+      //   console.log("MADE IT IN")
+      //   var pick_info = viewer.pick();
+      //   if (pick_info) {
+      //     var x = pick_info.point.x;
+      //     var y = pick_info.point.y;
+      //     var z = pick_info.point.z;
+      //     console.log("We found", x, y, z);
+      //     // $.get('/d3.json', {x_coord: x, y_coord:y, z_coord:z}, initializeD3)
+      //   };
+      // }); 
+
+      /////////////////////
+      // VOLUME VIEWER
+      /////////////////////
+      
+      // BrainBrowser.VolumeViewer.start("brainbrowser-div", function(viewer) {
+      //   viewer.render();
+
+      //   viewer.loadDefaultColorMapFromURL("models/spectral.txt");
+
+      //   viewer.loadVolume({
+      //     type: "minc",
+      //     header_url: "models/structural.mnc.header",
+      //     raw_data_url: "models/structural.mnc.raw"
+      //   });
+      // });
+
+    </script>
+  </body>
+</html>

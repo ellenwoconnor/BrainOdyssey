@@ -1,62 +1,98 @@
 <!doctype html>
 <html>
 <meta charset="utf-8">
-<style>
-
-.node circle {
-  cursor: pointer;
-  stroke: #3182bd;
-  stroke-width: 1.5px;
-}
-
-.node text {
-  font: 10px sans-serif;
-  pointer-events: none;
-  text-anchor: middle;
-  color:white;
-}
-
-line.link {
-  fill: none;
-  stroke: #9ecae1; 
-  stroke-width: 1.5px;
-
-}
-
-#brainbrowser_here {
-  height:500px;
-  width:500px
-  ;
-}
-
-#d3_here {
-  height:500px;
-  width:500px;
-}
-
-#title {
-  height:80px;
-  border:2px solid black;
-  text-align: center;
-}
-
-body {
-  background-color:white;
-  color:black;
-}
-
-h3 {
-  font: 30px sans-serif;
-  font-weight: bold;
-}
-
-</style>
 
 <head>
   <title>Brain Odyssey</title>
-  <script src="http://code.jquery.com/jquery.js"></script>
+<!--   // <script src="http://code.jquery.com/jquery.js"></script> -->
   <script src="http://d3js.org/d3.v3.min.js"></script>
+
+  <script src="js/jquery-2.1.1.min.js"></script>
+  <script src="brainbrowser/brainbrowser.js"></script>
+  <script src="brainbrowser/core/tree-store.js"></script>
+  <script src="brainbrowser/lib/config.js"></script>
+  <script src="brainbrowser/lib/utils.js"></script>
+  <script src="brainbrowser/lib/events.js"></script> 
+  <script src="brainbrowser/lib/loader.js"></script> 
+  <script src="brainbrowser/lib/color-map.js"></script>
+  <script src="brainbrowser/surface-viewer.js"></script>
+  <script src="brainbrowser/surface-viewer/lib/three.js"></script>
+  <script src="brainbrowser/surface-viewer/lib/parse-intensity-data.js"></script> 
+  <script src="brainbrowser/surface-viewer/modules/annotations.js"></script>
+  <script src="brainbrowser/surface-viewer/modules/color.js"></script>
+  <script src="brainbrowser/surface-viewer/modules/loading.js"></script>
+  <script src="brainbrowser/surface-viewer/modules/rendering.js"></script>
+  <script src="brainbrowser/surface-viewer/modules/views.js"></script>
+  <script src="brainbrowser/volume-viewer.js"></script>
+  <script src="brainbrowser/volume-viewer/lib/display.js"></script>
+  <script src="brainbrowser/volume-viewer/lib/panel.js"></script>
+  <script src="brainbrowser/volume-viewer/lib/utils.js"></script>
+  <script src="brainbrowser/volume-viewer/modules/loading.js"></script>
+  <script src="brainbrowser/volume-viewer/modules/rendering.js"></script>
+  <script src="brainbrowser/volume-viewer/volume-loaders/overlay.js"></script>
+  <script src="brainbrowser/volume-viewer/volume-loaders/minc.js"></script>
+
+  <style>
+
+    .node circle {
+      cursor: pointer;
+      stroke: #3182bd;
+      stroke-width: 1.5px;
+    }
+
+    .node text {
+      font: 10px sans-serif;
+      pointer-events: none;
+      text-anchor: middle;
+      color:white;
+    }
+
+    line.link {
+      fill: none;
+      stroke: #9ecae1; 
+      stroke-width: 1.5px;
+
+    }
+
+    #brainbrowser_here {
+      height:500px;
+      width:500px;
+      border: 2px solid black;
+    }
+
+    #d3_here {
+      height:500px;
+      width:500px;
+      border:2px solid black;
+    }
+
+    #title {
+      height:80px;
+      border:2px solid black;
+      text-align: center;
+    }
+
+    body {
+      background-color:white;
+      color:black;
+    }
+
+    h3 {
+      font: 30px sans-serif;
+      font-weight: bold;
+    }
+
+    .inline_box {
+      float:left;
+    }
+
+  </style>
+
+  <script>
+    BrainBrowser.config.set("worker_dir", "brainbrowser/workers")
+  </script>
 </head>
+
 
 <body>
 
@@ -76,14 +112,25 @@ h3 {
             <input type="text" name="zcoord" id="zcoord">
         </label><br>
     </form>
-    <button type="button" id="submit-xyz">Click this button</button>
+    <button type="button" id="submit-xyz">Click this button</button><br>
 
-
-    <div id="d3_here"></div>
-    <div id="brainbrowser_here"></div>
-
+    <div id="brainbrowser_here" class="inline_box">I WILL BE A BRAIN SOMEDAY!</div>
+    <div id="d3_here" class="inline_box"></div>
+    
 
     <!-- BRAINBROWSER SCRIPT HERE -->
+
+    <script>
+
+      BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
+        viewer.render();
+        
+        viewer.loadModelFromURL("models/brain-surface.obj");
+      });
+
+    </script>
+
+    <!--END BRAINBROWSER SCRIPT--> 
 
 
     <!--D3 SCRIPT HERE -->
