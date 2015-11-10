@@ -4,33 +4,34 @@
 
 <head>
   <title>Brain Odyssey</title>
-<!--   // <script src="http://code.jquery.com/jquery.js"></script> -->
+  <!--Change this to a file to store in the js dir - otherwise when
+  the internet is out the whole app breaks--> 
+  <script src="http://code.jquery.com/jquery.js"></script>
   <script src="http://d3js.org/d3.v3.min.js"></script>
-
-  <script src="js/jquery-2.1.1.min.js"></script>
-  <script src="brainbrowser/brainbrowser.js"></script>
-  <script src="brainbrowser/core/tree-store.js"></script>
-  <script src="brainbrowser/lib/config.js"></script>
-  <script src="brainbrowser/lib/utils.js"></script>
-  <script src="brainbrowser/lib/events.js"></script> 
-  <script src="brainbrowser/lib/loader.js"></script> 
-  <script src="brainbrowser/lib/color-map.js"></script>
-  <script src="brainbrowser/surface-viewer.js"></script>
-  <script src="brainbrowser/surface-viewer/lib/three.js"></script>
-  <script src="brainbrowser/surface-viewer/lib/parse-intensity-data.js"></script> 
-  <script src="brainbrowser/surface-viewer/modules/annotations.js"></script>
-  <script src="brainbrowser/surface-viewer/modules/color.js"></script>
-  <script src="brainbrowser/surface-viewer/modules/loading.js"></script>
-  <script src="brainbrowser/surface-viewer/modules/rendering.js"></script>
-  <script src="brainbrowser/surface-viewer/modules/views.js"></script>
-  <script src="brainbrowser/volume-viewer.js"></script>
-  <script src="brainbrowser/volume-viewer/lib/display.js"></script>
-  <script src="brainbrowser/volume-viewer/lib/panel.js"></script>
-  <script src="brainbrowser/volume-viewer/lib/utils.js"></script>
-  <script src="brainbrowser/volume-viewer/modules/loading.js"></script>
-  <script src="brainbrowser/volume-viewer/modules/rendering.js"></script>
-  <script src="brainbrowser/volume-viewer/volume-loaders/overlay.js"></script>
-  <script src="brainbrowser/volume-viewer/volume-loaders/minc.js"></script>
+  <script src="static/brainbrowser/js/jquery-2.1.1.min.js"></script>
+  <script src="static/brainbrowser/brainbrowser.js"></script>
+  <script src="static/brainbrowser/core/tree-store.js"></script>
+  <script src="static/brainbrowser/lib/config.js"></script>
+  <script src="static/brainbrowser/lib/utils.js"></script>
+  <script src="static/brainbrowser/lib/events.js"></script> 
+  <script src="static/brainbrowser/lib/loader.js"></script> 
+  <script src="static/brainbrowser/lib/color-map.js"></script>
+  <script src="static/brainbrowser/surface-viewer.js"></script>
+  <script src="static/brainbrowser/surface-viewer/lib/three.js"></script>
+  <script src="static/brainbrowser/surface-viewer/lib/parse-intensity-data.js"></script> 
+  <script src="static/brainbrowser/surface-viewer/modules/annotations.js"></script>
+  <script src="static/brainbrowser/surface-viewer/modules/color.js"></script>
+  <script src="static/brainbrowser/surface-viewer/modules/loading.js"></script>
+  <script src="static/brainbrowser/surface-viewer/modules/rendering.js"></script>
+  <script src="static/brainbrowser/surface-viewer/modules/views.js"></script>
+  <script src="static/brainbrowser/volume-viewer.js"></script>
+  <script src="static/brainbrowser/volume-viewer/lib/display.js"></script>
+  <script src="static/brainbrowser/volume-viewer/lib/panel.js"></script>
+  <script src="static/brainbrowser/volume-viewer/lib/utils.js"></script>
+  <script src="static/brainbrowser/volume-viewer/modules/loading.js"></script>
+  <script src="static/brainbrowser/volume-viewer/modules/rendering.js"></script>
+  <script src="static/brainbrowser/volume-viewer/volume-loaders/overlay.js"></script>
+  <script src="static/brainbrowser/volume-viewer/volume-loaders/minc.js"></script>
 
   <style>
 
@@ -89,7 +90,7 @@
   </style>
 
   <script>
-    BrainBrowser.config.set("worker_dir", "brainbrowser/workers")
+    BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")
   </script>
 </head>
 
@@ -125,7 +126,22 @@
       BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         viewer.render();
         
-        viewer.loadModelFromURL("models/brain-surface.obj");
+        viewer.loadModelFromURL("static/models/brain-surface.obj");
+
+        $("#brainbrowser_here").click(function(event) {
+          console.log("I am in the event handler callback")
+          if (!event.shiftKey && !event.ctrlKey) return;
+          var pick_info = viewer.pick();
+          if (pick_info) {
+            var x = String(Math.round(pick_info.point.x));
+            var y = String(Math.round(pick_info.point.y));
+            var z = String(Math.round(pick_info.point.z));
+            console.log("I found", x, y, z);
+            var url = "/d3.json?xcoord=" + x + "&ycoord=" + y + "&zcoord=" + z
+            console.log(url)
+            $.get(url, initializeD3)
+          };
+        }); 
       });
 
     </script>
@@ -196,6 +212,7 @@
           nodeEnter.append("text")
               .attr("dy", ".35em")
               .text(function(d) { return d.name; });
+              // Can I access d.name if I want to use the name to query my db? 
 
           node.select("circle")
               .style("fill", color);
@@ -219,14 +236,21 @@
         // Toggle children on click.
         function click(d) {
           if (d3.event.defaultPrevented) return; // ignore drag
-          if (d.children) {
-            d._children = d.children;
-            d.children = null;
+          if (d.children) {  // If d is on a child node? 
+            d._children = d.children;   // expand any collapsed children
+            d.children = null;  // ?? 
+            console.log("Something is happening here")
           } else {
-            d.children = d._children;
+            d.children = d._children; // ?
             d._children = null;
             console.log("a click!")
-            // stuff goes here
+            // stuff goes here: 
+              // Get the word associated with this node (e.g. 'emotion')
+              // Do an AJAX request for the locations showing activation 
+              // associated with that word. 
+              // The result needs to be a .txt file with a list  
+              // of word frequencies at each of the 81000 locations across the
+              // brain surface
           }
           update();
         }

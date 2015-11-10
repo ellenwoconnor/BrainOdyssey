@@ -100,20 +100,23 @@
         viewer.render();
         
         viewer.loadModelFromURL("models/brain-surface.obj");
+
+        $("#brainbrowser-div").click(function(event) {
+          console.log("I am in the event handler callback")
+          if (!event.shiftKey && !event.ctrlKey) return;
+          var pick_info = viewer.pick();
+          if (pick_info) {
+            var x = pick_info.point.x;
+            var y = pick_info.point.y;
+            var z = pick_info.point.z;
+            console.log("I found", x, y, z);
+            // $.get('/d3.json', {x_coord: x, y_coord:y, z_coord:z}, initializeD3)
+          };
+        }); 
       });
 
       // ME TRYING TO GET THIS TO WORK 
-      // $("brainbrowser-div").on('click', function(event) {
-      //   console.log("MADE IT IN")
-      //   var pick_info = viewer.pick();
-      //   if (pick_info) {
-      //     var x = pick_info.point.x;
-      //     var y = pick_info.point.y;
-      //     var z = pick_info.point.z;
-      //     console.log("We found", x, y, z);
-      //     // $.get('/d3.json', {x_coord: x, y_coord:y, z_coord:z}, initializeD3)
-      //   };
-      // }); 
+
 
       /////////////////////
       // VOLUME VIEWER
