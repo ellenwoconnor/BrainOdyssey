@@ -66,6 +66,14 @@ def get_json(radius=2, scale=70000):
     return jsonify(root_dict)
 
 
+@app.route('/locations')
+def get_locations():
+
+    word = request.args.get("word")
+    loc_ids = Location.get_locations_from_word(word)
+    return loc_ids[0]
+
+
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
     # that we invoke the DebugToolbarExtension

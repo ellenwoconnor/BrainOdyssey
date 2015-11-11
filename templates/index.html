@@ -4,7 +4,7 @@
 
 <head>
   <title>Brain Odyssey</title>
-  <!--Change this to a file to store in the js dir - otherwise when
+  <!--TO DO: Change this to a file to store in the js dir - otherwise when
   the internet is out the whole app breaks--> 
   <script src="http://code.jquery.com/jquery.js"></script>
   <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -45,7 +45,6 @@
       font: 10px sans-serif;
       pointer-events: none;
       text-anchor: middle;
-      color:white;
     }
 
     line.link {
@@ -56,14 +55,14 @@
     }
 
     #brainbrowser_here {
-      height:500px;
-      width:500px;
+      height:600px;
+      width:600px;
       border: 2px solid black;
     }
 
     #d3_here {
-      height:500px;
-      width:500px;
+      height:600px;
+      width:600px;
       border:2px solid black;
     }
 
@@ -71,6 +70,14 @@
       height:80px;
       border:2px solid black;
       text-align: center;
+    }
+
+    .inline_box {
+      float:left;
+    }
+
+    .non-inline {
+      clear:left;
     }
 
     body {
@@ -83,15 +90,9 @@
       font-weight: bold;
     }
 
-    .inline_box {
-      float:left;
-    }
-
   </style>
 
-  <script>
-    BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")
-  </script>
+  <script>BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")</script>
 </head>
 
 
@@ -102,43 +103,57 @@
     <div id="title">
       <h3>Brain Odyssey</h3>
     </div>
-    <form id="xyz_coord">Brain coordinates:<br>
-        <label for="xcoord">X:
-            <input type="text" name="xcoord" id="xcoord">
-        </label><br>
-        <label for="ycoord">Y:
-            <input type="text" name="ycoord" id="ycoord">
-        </label><br>
-        <label for="zcoord">Z:
-            <input type="text" name="zcoord" id="zcoord">
-        </label><br>
-    </form>
-    <button type="button" id="submit-xyz">Click this button</button><br>
 
-    <div id="brainbrowser_here" class="inline_box">I WILL BE A BRAIN SOMEDAY!</div>
-    <div id="d3_here" class="inline_box"></div>
+    <div class="non_inline">
+      <form id="xyz_coord">Shift+click on the brain or enter coordinates manually here:<br>
+          <label for="xcoord">X:
+              <input type="text" name="xcoord" id="xcoord">
+          </label>
+          <label for="ycoord">Y:
+              <input type="text" name="ycoord" id="ycoord">
+          </label>
+          <label for="zcoord">Z:
+              <input type="text" name="zcoord" id="zcoord">
+          </label>
+          <button type="button" id="submit-xyz">Select these coordinates!</button><br><br>
+      </form>
     
+
+    <div id="brainbrowser_here" class="inline_box"></div>
+    <div id="d3_here" class="inline_box"></div>
+
 
     <!-- BRAINBROWSER SCRIPT HERE -->
 
     <script>
 
       BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
-        viewer.render();
         
-        viewer.loadModelFromURL("static/models/brain-surface.obj");
+        // Render the viewer and load an mniobj brain surface
+        viewer.render();
+        viewer.setClearColor(parseInt('ffffff', 16));   // Set the background to white
+        viewer.loadModelFromURL("static/models/brain-surface.obj"); // Load the mniobj 
+        
 
+        // Event handler sends an AJAX request using x, y, z coordinates
+        // when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
           console.log("I am in the event handler callback")
+
+          // If the user did ctrlClick, get the xyz coordinates 
           if (!event.shiftKey && !event.ctrlKey) return;
           var pick_info = viewer.pick();
           if (pick_info) {
-            var x = String(Math.round(pick_info.point.x));
-            var y = String(Math.round(pick_info.point.y));
-            var z = String(Math.round(pick_info.point.z));
-            console.log("I found", x, y, z);
-            var url = "/d3.json?xcoord=" + x + "&ycoord=" + y + "&zcoord=" + z
-            console.log(url)
+            var x = Math.round(pick_info.point.x);
+            var y = Math.round(pick_info.point.y);
+            var z = Math.round(pick_info.point.z);
+            viewer.drawDot(x, y, z, 2, 0xFF0000)
+            d3.select("svg").remove() // clear current D3
+
+            // Send an AJAX request to query the db and display the results in D3
+            var url = "/d3.json?xcoord=" + String(x) + 
+                      "&ycoord=" + String(y) + 
+                      "&zcoord=" + String(z)
             $.get(url, initializeD3)
           };
         }); 
@@ -148,6 +163,22 @@
 
     <!--END BRAINBROWSER SCRIPT--> 
 
+    <!-- Also initialize D3 when the user submits coordinates via the form --> 
+    <script>
+    function getJson() {
+      d3.select("#d3_here").selectAll("svg").remove();
+      var xVal = $("#xcoord");
+      var yVal = $("#ycoord");
+      var zVal = $("#zcoord");
+      console.log("Getting JSON.");
+      var url = "/d3.json?" + $("#xyz_coord").serialize();
+      console.log(url);
+      $.get(url, initializeD3);
+    }
+
+    $('#submit-xyz').on('click', getJson);
+
+    </script>
 
     <!--D3 SCRIPT HERE -->
 
@@ -157,7 +188,7 @@
         console.log("Initializing D3.");
         console.dir(results);
 
-        var width = 960,
+        var width = 500,
             height = 500,
             root; 
 
@@ -236,21 +267,20 @@
         // Toggle children on click.
         function click(d) {
           if (d3.event.defaultPrevented) return; // ignore drag
-          if (d.children) {  // If d is on a child node? 
-            d._children = d.children;   // expand any collapsed children
-            d.children = null;  // ?? 
-            console.log("Something is happening here")
+          if (d.children) {  
+            d._children = d.children;   
+            d.children = null;  
           } else {
-            d.children = d._children; // ?
+            d.children = d._children; 
             d._children = null;
-            console.log("a click!")
-            // stuff goes here: 
-              // Get the word associated with this node (e.g. 'emotion')
-              // Do an AJAX request for the locations showing activation 
-              // associated with that word. 
-              // The result needs to be a .txt file with a list  
-              // of word frequencies at each of the 81000 locations across the
-              // brain surface
+
+            // When user clicks on a node: do an AJAX request to get the locations
+            // associated with that word.
+            var url = '/locations?word=' + String(d.name)
+            // To do: figure out why this route isn't working (I think
+            // it's related to the route returning a python tuple?)
+            // $.get(url, function(result) {console.log(result)});
+
           }
           update();
         }
@@ -271,22 +301,6 @@
     } 
 
   // D3 SCRIPT END  ---------------------------------------------------------
-
-  // Initialize D3 on form submission  ---------------------------------------
-
-    function getJson() {
-      d3.select("#d3_here").selectAll("svg").remove();
-      var xVal = $("#xcoord");
-      var yVal = $("#ycoord");
-      var zVal = $("#zcoord");
-      console.log("Getting JSON.");
-      var url = "/d3.json?" + $("#xyz_coord").serialize();
-      console.log(url);
-      $.get(url, initializeD3);
-    }
-
-    $('#submit-xyz').on('click', getJson);
-
 
 
 </script>

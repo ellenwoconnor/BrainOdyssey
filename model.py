@@ -40,6 +40,11 @@ class Location(db.Model):
         """Returns existing xyz instance of the class (None if no such
         instance exists).
 
+            >>> Location.check_by_xyz_space(60.0, 30.0, 10.0, space='MNI')
+            <Location id=63589 x=60 y=30 z=10 label=None space=MNI>
+            >>> Location.check_by_xyz_space(200.0, 30.0, 10.0, space='MNI') == None
+            True
+
         Used in database seeding"""
 
         location_obj = cls.query.filter(cls.x_coord == x,
@@ -47,6 +52,26 @@ class Location(db.Model):
                                         cls.z_coord == z,
                                         cls.space == space).first()
         return location_obj
+
+
+### Look up locations associated with a word #################################
+
+    @classmethod
+    def get_locations_from_word(cls, word):
+        """Returns all xyz coordinates associated with a word.
+
+            >>> len(Location.get_locations_from_word('semantic'))
+            27279
+
+        """
+
+        location_coords = db.session.query(
+            cls.x_coord, cls.y_coord, cls.z_coord).join(
+            Activation).join(Study).join(StudyTerm).filter(
+            StudyTerm.word == word,
+            StudyTerm.frequency > .05).all()
+
+        return location_coords
 
 ###  Display coordinate information ############################################
 
@@ -87,13 +112,23 @@ class Activation(db.Model):
     @classmethod
     def get_pmids_from_xyz(cls, x_coord, y_coord, z_coord, radius=None):
         """Returns the PubMed IDs (unique identifiers) for any studies reporting
-        activation at or near the xyz coordinate."""
+        activation at or near the xyz coordinate.
+
+            >>> Activation.get_pmids_from_xyz(-60, 0, -30, 3)
+            Getting all studies with radius 3
+            [15737663, 16481375, 17121746, 21908871]
+
+            >>> Activation.get_pmids_from_xyz(-60, 0, -30, 2)
+            Getting all studies with radius 2
+            Getting all studies with radius 3
+            [15737663, 16481375, 17121746, 21908871]
+
+        """
 
         # If the radius is provided, use it get studies reporting activation
         # in locations within +/- n millimeters of xyz
         if radius:
-            print "I am getting all studies with radius", radius
-            # Test with: terms = StudyTerm.get_terms_in_radius(-60, 0, -30, 3)
+            print "Getting all studies with radius", radius
             pmids = db.session.query(cls.pmid).join(Location).filter(
                 Location.x_coord < (x_coord + radius),
                 Location.x_coord > (x_coord - radius),
@@ -105,8 +140,7 @@ class Activation(db.Model):
 
             pmids = [pmid[0] for pmid in pmids]
 
-            # If there are no hits, widen the radius and research.
-            # Test with: terms = StudyTerm.get_terms_in_radius(-60, 0, -30, 2)
+            # If there are no hits, widen the radius and re-search.
             if len(pmids) < 1:
                 radius += 1
                 return cls.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
@@ -197,7 +231,14 @@ class StudyTerm(db.Model):
         """Returns all terms associated with certain PMIDs, and the frequency
         the term is used in each text.
 
-        Test with: pmids = [15737663, 16481375, 17121746, 21908871]"""
+            >>> StudyTerm.get_terms_by_pmid([15737663, 16481375, 17121746, 21908871]) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+            Getting all terms from studies [15737663, 16481375, 17121746, 21908871]
+            ([(u'stress', 0.648257962749), (u'asd', 0.536948763846), 
+                (u'voice', 0.522110847073), (u'children', 0.390914181003), ... 
+                u'patient group', u'modulating', u'shifting', u'group', 
+                u'information', u'impairments'])
+        
+        """
 
         print "Getting all terms from studies", pmids
 
@@ -207,13 +248,6 @@ class StudyTerm(db.Model):
         # Terms will be used to build a json dictionary;
         # List will be used to constrain the cluster search
         return terms, [term[0] for term in terms if term[1] > .05]
-
-    ### Normalize frequencies ##############################################
-
-    @classmethod
-    def transform_frequencies(cls, terms):
-        """ TODO:
-        Normalize each frequency using the mean/sd frequency by word."""
 
 
 ###########################################################################
@@ -238,6 +272,11 @@ class Term(db.Model):
     def check_for_term(cls, word):
         """Returns True if a word is in Term table already, False if not.
 
+            >>> Term.check_for_term('willy-nilly')
+            False
+            >>> Term.check_for_term('emotion')
+            True
+
         Used in database seeding"""
 
         # TO DO: allow for some kind of fuzzy search so that:
@@ -251,6 +290,8 @@ class Term(db.Model):
             return False
         else:
             return True
+
+        
 
 ###########################################################################
 # TERMCLUSTER TABLE 
@@ -282,9 +323,10 @@ class TermCluster(db.Model):
         """Returns the 15 'most relevant' topic clusters given some
         list of words by maximizing the # of words per cluster.
 
-        Test with:
-        words = [u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer', u'alzheimer disease', u'anterior', u'anterior cingulate', u'anxiety', u'asd', u'assessed using', u'associations', u'autism', u'autism spectrum', u'available', u'background', u'baseline', u'bases', u'canonical', u'caudate', u'caudate nucleus', u'change', u'characterized', u'children', u'cingulate', u'cingulate cortices', u'circuitry', u'cognitive deficits', u'cohort', u'compare', u'comprehensive', u'condition', u'confirm', u'contextual', u'control', u'control group', u'cortical', u'cortices', u'critical role', u'cross', u'cross modal', u'cues', u'decision', u'deficits', u'deficits', u'deficits', u'degeneration', u'demands', u'dementia', u'depending', u'developed', u'developing', u'development', u'difficulty', u'discrimination', u'disease', u'disease', u'disorders', u'dopamine', u'dopaminergic', u'drug', u'early', u'early stage', u'effortful', u'event', u'executive', u'exhibit', u'experiencing', u'explicit', u'face', u'face recognition', u'familiarity', u'female', u'frontal', u'frontal anterior', u'frontal cortices', u'frontotemporal', u'functioning', u'gender', u'grey', u'grey matter', u'group', u'group', u'group', u'groups', u'guide', u'guided', u'gyrus ifg', u'hand', u'handed', u'healthy adults', u'high functioning', u'higher level', u'hypoactivation', u'identification', u'ifg', u'ii', u'iii', u'imagery', u'impaired', u'impaired', u'impairments', u'impairments', u'impairments', u'included', u'included', u'individuals', u'induced', u'information', u'intended', u'interpret', u'inversely', u'involving', u'knowledge', u'listened', u'little', u'little known', u'lobe', u'male', u'matter', u'mean', u'mean age', u'meaning', u'measures', u'mediates', u'men', u'mental', u'mental states', u'methods functional', u'middle frontal', u'modal', u'modalities', u'model', u'modulating', u'needed', u'neuroanatomical', u'neurodegenerative', u'neutral', u'new', u'nucleus', u'observations', u'obtained', u'outcome', u'parkinson', u'parkinson disease', u'participated', u'particularly', u'patient', u'patient group', u'pattern', u'perception', u'periods', u'planning', u'play', u'play role', u'posterior cingulate', u'potentially', u'prefrontal posterior', u'prior', u'processes', u'protocol', u'provide evidence', u'range', u'rated', u'rating', u'recently', u'recognition', u'recruit', u'recruited', u'reflect', u'regard', u'relevant', u'require', u'required', u'requiring', u'research', u'role', u'second', u'seeking', u'session', u'set', u'seven', u'severe', u'sex', u'shift', u'shifting', u'short', u'showing', u'shown', u'situations', u'socially', u'speaker', u'speaker', u'specifically', u'spectrum', u'spectrum disorders', u'stage', u'stages', u'states', u'strategies', u'stress', u'strong', u'substrate', u'suggests', u'systematic', u'taking', u'task', u'task demands', u'temporal', u'traditional', u'trial', u'types', u'typically', u'typically developing', u'understanding', u'use', u'users', u'variant', u'varied', u'verbal', u'vocal', u'voice', u'women', u'years', u'young', u'young healthy']
-        Output should be: [308, 228, 133, 325, 0, 197, 204, 276, 287, 373, 39, 59, 100, 123, 210]
+            >>> TermCluster.get_top_clusters([u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer'])
+            Getting the top clusters associated with terms [u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer']
+            [35, 98, 100, 228, 231, 304, 305, 306, 338, 377, 379, 393]
+
         """
 
         print "Getting the top clusters associated with terms", terms[0:25]
@@ -302,10 +344,10 @@ class TermCluster(db.Model):
     def get_word_cluster_pairs(cls, clusters, words):
         """Returns a list of cluster-word pairs.
 
-        Test with:
-        clusters = [228, 308, 133, 210, 0, 294, 37, 128, 261, 357, 98, 186, 215, 306, 59]
-        words = [u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer', u'alzheimer disease', u'anterior', u'anterior cingulate', u'anxiety', u'asd', u'assessed using', u'associations', u'autism', u'autism spectrum', u'available', u'background', u'baseline', u'bases', u'canonical', u'caudate', u'caudate nucleus', u'change', u'characterized', u'children', u'cingulate', u'cingulate cortices', u'circuitry', u'cognitive deficits', u'cohort', u'compare', u'comprehensive', u'condition', u'confirm', u'contextual', u'control', u'control group', u'cortical', u'cortices', u'critical role', u'cross', u'cross modal', u'cues', u'decision', u'deficits', u'deficits', u'deficits', u'degeneration', u'demands', u'dementia', u'depending', u'developed', u'developing', u'development', u'difficulty', u'discrimination', u'disease', u'disease', u'disorders', u'dopamine', u'dopaminergic', u'drug', u'early', u'early stage', u'effortful', u'event', u'executive', u'exhibit', u'experiencing', u'explicit', u'face', u'face recognition', u'familiarity', u'female', u'frontal', u'frontal anterior', u'frontal cortices', u'frontotemporal', u'functioning', u'gender', u'grey', u'grey matter', u'group', u'group', u'group', u'groups', u'guide', u'guided', u'gyrus ifg', u'hand', u'handed', u'healthy adults', u'high functioning', u'higher level', u'hypoactivation', u'identification', u'ifg', u'ii', u'iii', u'imagery', u'impaired', u'impaired', u'impairments', u'impairments', u'impairments', u'included', u'included', u'individuals', u'induced', u'information', u'intended', u'interpret', u'inversely', u'involving', u'knowledge', u'listened', u'little', u'little known', u'lobe', u'male', u'matter', u'mean', u'mean age', u'meaning', u'measures', u'mediates', u'men', u'mental', u'mental states', u'methods functional', u'middle frontal', u'modal', u'modalities', u'model', u'modulating', u'needed', u'neuroanatomical', u'neurodegenerative', u'neutral', u'new', u'nucleus', u'observations', u'obtained', u'outcome', u'parkinson', u'parkinson disease', u'participated', u'particularly', u'patient', u'patient group', u'pattern', u'perception', u'periods', u'planning', u'play', u'play role', u'posterior cingulate', u'potentially', u'prefrontal posterior', u'prior', u'processes', u'protocol', u'provide evidence', u'range', u'rated', u'rating', u'recently', u'recognition', u'recruit', u'recruited', u'reflect', u'regard', u'relevant', u'require', u'required', u'requiring', u'research', u'role', u'second', u'seeking', u'session', u'set', u'seven', u'severe', u'sex', u'shift', u'shifting', u'short', u'showing', u'shown', u'situations', u'socially', u'speaker', u'speaker', u'specifically', u'spectrum', u'spectrum disorders', u'stage', u'stages', u'states', u'strategies', u'stress', u'strong', u'substrate', u'suggests', u'systematic', u'taking', u'task', u'task demands', u'temporal', u'traditional', u'trial', u'types', u'typically', u'typically developing', u'understanding', u'use', u'users', u'variant', u'varied', u'verbal', u'vocal', u'voice', u'women', u'years', u'young', u'young healthy']
-        Output should be: [(133, u'disease'), (210, u'executive'), ...]
+            >>> TermCluster.get_word_cluster_pairs([133], [u'disease'])
+            Getting the associations with clusters [133]
+            [(133, u'disease')]
+            
         """
         print "Getting the associations with clusters", clusters
 
