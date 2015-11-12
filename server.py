@@ -9,11 +9,20 @@ app = Flask(__name__)
 # If you use an undefined variable in Jinja2, it raises an error.
 app.jinja_env.undefined = StrictUndefined
 
+
+################################################################################
+#  HOMEPAGE ROUTE
+################################################################################
+
 @app.route('/')
 def index():
     """Homepage."""
 
     return render_template('index.html')
+
+################################################################################
+#  ROUTE FOR CREATING JSON FOR D3
+################################################################################
 
 @app.route('/d3.json')
 def get_json(radius=2, scale=70000):
@@ -25,6 +34,8 @@ def get_json(radius=2, scale=70000):
     x_coord = float(request.args.get("xcoord"))
     y_coord = float(request.args.get("ycoord"))
     z_coord = float(request.args.get("zcoord"))
+    # radius = int(request.args.get("radius"))
+
     # Get all of the needed information from the db first:
     # Get the studies citing activation at/near xyz
     pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
@@ -65,6 +76,26 @@ def get_json(radius=2, scale=70000):
 
     return jsonify(root_dict)
 
+################################################################################
+#  ROUTE FOR GENERATING CITATIONS
+################################################################################
+
+@app.route('/citations')
+def give_citations(radius=2):
+    """Returns a list of text citations associated with some location."""
+
+    x_coord = float(request.args.get("xcoord"))
+    y_coord = float(request.args.get("ycoord"))
+    z_coord = float(request.args.get("zcoord"))
+
+    pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
+    citations = Location.get_references(pmids)
+
+    return citations
+
+################################################################################
+#  ROUTE FOR RETRIEVING OTHER LOCATIONS ASSOCIATED WITH A WORD
+################################################################################
 
 @app.route('/locations')
 def get_locations():

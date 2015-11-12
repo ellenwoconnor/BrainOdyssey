@@ -57,7 +57,7 @@ class Location(db.Model):
 ### Look up locations associated with a word #################################
 
     @classmethod
-    def get_locations_from_word(cls, word):
+    def get_locations_from_word(cls, word, freq=.05):
         """Returns all xyz coordinates associated with a word.
 
             >>> len(Location.get_locations_from_word('semantic'))
@@ -69,9 +69,13 @@ class Location(db.Model):
             cls.x_coord, cls.y_coord, cls.z_coord).join(
             Activation).join(Study).join(StudyTerm).filter(
             StudyTerm.word == word,
-            StudyTerm.frequency > .05).all()
+            StudyTerm.frequency > freq).all()
 
         return location_coords
+
+        # Note that these searches typically yield locations in the tens of thousands
+        # e.g. 'emotion' is linked to almost the entire surface
+
 
 ###  Display coordinate information ############################################
 
@@ -174,7 +178,7 @@ class Study(db.Model):
     journal = db.Column(db.String(200))
 
 
-    ### Retrieve a study from db ########################################
+    ### Check if study is already in db ########################################
 
     @classmethod
     def get_study_by_pmid(cls, pmid):
@@ -185,6 +189,22 @@ class Study(db.Model):
 
         study_obj = cls.query.filter(cls.pmid == pmid).first()
         return study_obj
+
+    ### Retrieve studies associated with location #############################
+
+    @classmethod
+    def get_references(cls, pmids):
+        """Returns a list of references associated with specified PubMed IDs.
+        """
+
+        reference_data = cls.query.filter(cls.pmid.in_(pmids)).all()
+        citations = []
+
+        for reference in reference_data:
+            citation = reference.authors + ". (" + str(reference.year) + "). " + reference.title + reference.journal + "."
+            citations.append(citation)
+
+        return citations
 
     ### Get information about a study ########################################
 
@@ -227,31 +247,30 @@ class StudyTerm(db.Model):
     ### Retrieve terms assoc. with studies  ###################################
 
     @classmethod
-    def get_terms_by_pmid(cls, pmids):
+    def get_terms_by_pmid(cls, pmids, lim=100, freq_threshold=.05):
         """Returns all terms associated with certain PMIDs, and the frequency
         the term is used in each text.
 
             >>> StudyTerm.get_terms_by_pmid([15737663, 16481375, 17121746, 21908871]) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
             Getting all terms from studies [15737663, 16481375, 17121746, 21908871]
-            ([(u'stress', 0.648257962749), (u'asd', 0.536948763846), 
-                (u'voice', 0.522110847073), (u'children', 0.390914181003), ... 
-                u'patient group', u'modulating', u'shifting', u'group', 
+            ([(u'stress', 0.648257962749), (u'asd', 0.536948763846),
+                (u'voice', 0.522110847073), (u'children', 0.390914181003), ...
+                u'patient group', u'modulating', u'shifting', u'group',
                 u'information', u'impairments'])
-        
         """
 
         print "Getting all terms from studies", pmids
 
         terms = db.session.query(cls.word, cls.frequency).filter(
-            cls.pmid.in_(pmids)).order_by(desc(cls.frequency)).limit(100).all()
+            cls.pmid.in_(pmids)).order_by(desc(cls.frequency)).limit(lim).all()
 
         # Terms will be used to build a json dictionary;
         # List will be used to constrain the cluster search
-        return terms, [term[0] for term in terms if term[1] > .05]
+        return terms, [term[0] for term in terms if term[1] > freq_threshold]
 
 
 ###########################################################################
-# TERM TABLE 
+# TERM TABLE
 ###########################################################################
 
 class Term(db.Model):
@@ -281,20 +300,20 @@ class Term(db.Model):
 
         # TO DO: allow for some kind of fuzzy search so that:
         #
-        # (1) If a word is really a two-word phrase, check if 
+        # (1) If a word is really a two-word phrase, check if
         # either of those words is in the Term table.
-        # 
-        # (2) If the stemmed word is in stemmed terms, add it as a match 
+        #
+        # (2) If the stemmed word is in stemmed terms, add it as a match
 
         if cls.query.filter(cls.word == word).first() is None:
             return False
         else:
             return True
 
-        
+
 
 ###########################################################################
-# TERMCLUSTER TABLE 
+# TERMCLUSTER TABLE
 ###########################################################################
 
 class TermCluster(db.Model):
@@ -319,7 +338,7 @@ class TermCluster(db.Model):
     ### Get "popular" clusters f###############################################
 
     @classmethod
-    def get_top_clusters(cls, terms):
+    def get_top_clusters(cls, terms, n=12):
         """Returns the 15 'most relevant' topic clusters given some
         list of words by maximizing the # of words per cluster.
 
@@ -333,7 +352,7 @@ class TermCluster(db.Model):
 
         clusters = db.session.query(cls.cluster_id).filter(
             cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
-            func.count(cls.word))).limit(12).all()
+            func.count(cls.word))).limit(n).all()
 
         return [cluster[0] for cluster in clusters]
 
@@ -347,7 +366,7 @@ class TermCluster(db.Model):
             >>> TermCluster.get_word_cluster_pairs([133], [u'disease'])
             Getting the associations with clusters [133]
             [(133, u'disease')]
-            
+
         """
         print "Getting the associations with clusters", clusters
 
@@ -362,7 +381,7 @@ class TermCluster(db.Model):
 ###########################################################################
 
 class Cluster(db.Model):
-    """A topic cluster, identified by an integer from 0-200."""
+    """A topic cluster, identified by an integer from 0-400."""
 
     __tablename__ = "clusters"
 
@@ -384,56 +403,7 @@ class Cluster(db.Model):
         else:
             return True
 
-###########################################################################
-# OTHER
-###########################################################################
 
-
-def build_json_for_FDG(x_coord, y_coord, z_coord, radius, scale=1):
-    """ Returns a master dictionary with xyz at the root node.
-
-    Test with parameters: -60, 0, -30, 3
-    """
-
-    # Get all of the needed information from the db first:
-    # Get the studies citing activation at/near xyz
-    pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
-    # Get [(wd, freq), ...] and [wd1, wd2] for most frequent words
-    terms_for_dict, words = StudyTerm.get_terms_by_pmid(pmids)
-    # Optional: transform the terms
-    # Get the top clusters
-    top_clusters = TermCluster.get_top_clusters(words)
-    # Get the cluster-word associations
-    associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
-
-    # Make the root node:
-    xyz_loc = "x: " + str(x_coord) + ", y: " + str(y_coord) + ", z:" + str(z_coord)
-    root_dict = {'name': xyz_loc, 'children': []}
-
-    # Build the terminal nodes (leaves) first using (wd, freq) tuples
-    # Output: {word: {'name': word, 'size': freq}, word2: ... }
-    leaves = {}
-    for (word, freq) in terms_for_dict:
-        if word not in leaves:
-            leaves[word] = {'name': word, 'size': freq * scale}
-        else:
-            leaves[word]['size'] += freq * scale
-
-    # Embed the leaves in the clusters:
-    # Output: {cluster_id: {'name': ID, 'children': [...]}, ... }
-    clusters = {}
-    for (cluster_id, word) in associations:
-        if cluster_id not in clusters:
-            clusters[cluster_id] = {'name': cluster_id, 'children': [leaves[word]]}
-        else:
-            clusters[cluster_id]['children'].append(leaves[word])
-
-    # Put the clusters in the root dictionary
-    # Output: {'name': root, children: [{'name': id, 'children': []}, ...]
-    for cluster in top_clusters:
-        root_dict['children'].append(clusters[cluster])
-
-    return root_dict, pmids, words, top_clusters, associations
 
 ##############################################################################
 # Helper functions

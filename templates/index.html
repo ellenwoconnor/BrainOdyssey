@@ -4,10 +4,9 @@
 
 <head>
   <title>Brain Odyssey</title>
-  <!--TO DO: Change this to a file to store in the js dir - otherwise when
-  the internet is out the whole app breaks--> 
-  <script src="http://code.jquery.com/jquery.js"></script>
-  <script src="http://d3js.org/d3.v3.min.js"></script>
+
+  <script src="static/d3.js"></script>
+  <script src="static/jquery.js"></script>
   <script src="static/brainbrowser/js/jquery-2.1.1.min.js"></script>
   <script src="static/brainbrowser/brainbrowser.js"></script>
   <script src="static/brainbrowser/core/tree-store.js"></script>
@@ -56,19 +55,16 @@
 
     #brainbrowser_here {
       height:600px;
-      width:600px;
-      border: 2px solid black;
+      width:500px;
     }
 
     #d3_here {
       height:600px;
-      width:600px;
-      border:2px solid black;
+      width:500px;
     }
 
     #title {
       height:80px;
-      border:2px solid black;
       text-align: center;
     }
 
@@ -115,64 +111,97 @@
           <label for="zcoord">Z:
               <input type="text" name="zcoord" id="zcoord">
           </label>
-          <button type="button" id="submit-xyz">Select these coordinates!</button><br><br>
+          <label for="radius">Radius:
+              <select name="radius" id="radius">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+              </select>
+          </label>
+          <button type="button" id="submit-xyz">Select these coordinates!</button>
+          <br><br>
       </form>
     
 
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
+    <div id="refs_div">
+      <ol id="references">
+      </ol>
+    </div>
 
 
     <!-- BRAINBROWSER SCRIPT HERE -->
 
     <script>
 
+    function render_brainbrowser() {
       BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         
         // Render the viewer and load an mniobj brain surface
         viewer.render();
-        viewer.setClearColor(parseInt('ffffff', 16));   // Set the background to white
-        viewer.loadModelFromURL("static/models/brain-surface.obj"); // Load the mniobj 
-        
+        // Set the background to white
+        viewer.setClearColor(parseInt('ffffff', 16)); 
+        // Load the mniobj 
+        viewer.loadModelFromURL("static/models/brain-surface.obj"); 
 
-        // Event handler sends an AJAX request using x, y, z coordinates
-        // when the user clicks on a part of the brain 
+        // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
-          console.log("I am in the event handler callback")
 
-          // If the user did ctrlClick, get the xyz coordinates 
+          // If ctrlClick, get the xyz coordinates 
           if (!event.shiftKey && !event.ctrlKey) return;
           var pick_info = viewer.pick();
           if (pick_info) {
             var x = Math.round(pick_info.point.x);
             var y = Math.round(pick_info.point.y);
             var z = Math.round(pick_info.point.z);
-            viewer.drawDot(x, y, z, 2, 0xFF0000)
-            d3.select("svg").remove() // clear current D3
+            viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
+            d3.select("svg").remove(); // clear current D3
 
-            // Send an AJAX request to query the db and display the results in D3
-            var url = "/d3.json?xcoord=" + String(x) + 
+            // Query the db and display the results in D3
+            var d3Url = "/d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
-                      "&zcoord=" + String(z)
-            $.get(url, initializeD3)
+                      "&zcoord=" + String(z);
+            var citationUrl = "/citations?xcoord=" + String(x) + 
+                      "&ycoord=" + String(y) + 
+                      "&zcoord=" + String(z);
+            $.get(d3Url, initializeD3);
+            // $.get(citationUrl, displayRefs);
           };
         }); 
       });
+    }
+
+    render_brainbrowser();
+
 
     </script>
 
     <!--END BRAINBROWSER SCRIPT--> 
 
-    <!-- Also initialize D3 when the user submits coordinates via the form --> 
+    <!-- Also initialize D3 through form submission --> 
     <script>
+
+    function displayRefs(results) {
+      var refs = document.getElementById("references"); 
+      results.forEach(function (item) {
+        var refitem = document.createElement("li");
+        refitem.appendChild(document.createTextNode(item));
+        refs.appendChild(refitem);
+      })
+    }
+
     function getJson() {
       d3.select("#d3_here").selectAll("svg").remove();
       var xVal = $("#xcoord");
       var yVal = $("#ycoord");
       var zVal = $("#zcoord");
       console.log("Getting JSON.");
-      var url = "/d3.json?" + $("#xyz_coord").serialize();
-      console.log(url);
+      var url = "/d3.json?" + $("#xyz_coord").serialize()
+      console.log(url); 
       $.get(url, initializeD3);
     }
 
@@ -189,7 +218,7 @@
         console.dir(results);
 
         var width = 500,
-            height = 500,
+            height = 600,
             root; 
 
         var force = d3.layout.force()
@@ -274,9 +303,10 @@
             d.children = d._children; 
             d._children = null;
 
-            // When user clicks on a node: do an AJAX request to get the locations
-            // associated with that word.
+            // When user clicks on a node get the locations 
             var url = '/locations?word=' + String(d.name)
+            console.log(url)
+            $.get('/locations', {word: String(d.name)}, function(result){console.log(result)});
             // To do: figure out why this route isn't working (I think
             // it's related to the route returning a python tuple?)
             // $.get(url, function(result) {console.log(result)});
@@ -300,7 +330,7 @@
         }
     } 
 
-  // D3 SCRIPT END  ---------------------------------------------------------
+  // D3 SCRIPT END  --------------------------------------------
 
 
 </script>

@@ -5,13 +5,33 @@ from model import Location, Activation, Study, StudyTerm, Term, TermCluster, Clu
 from model import connect_to_db, db
 from server import app
 
+def load_indices():
+    """Adds surface x-y-z locations and their BrainBrowser index."""
+
+    mniobj = open('static/models/brain-surface2.obj')
+    coords = mniobj.readlines()
+    counter = 0
+
+    for i in range(0, 81924):
+        row = coords[i].strip().split(" ")
+        x = round(float(row[0]), 0)
+        y = round(float(row[1]), 0)
+        z = round(float(row[2]), 0)
+        location_to_add = Location(x_coord=x, y_coord=y, z_coord=z,
+                                       space=None, index=i)
+        db.session.add(location_to_add)
+
+    db.session.commit()
+
+
+# Maybe it makes sense to add an MNI obj table here
 
 def load_studies():
     """Load data from database.txt into Location, Activation, Study tables."""
 
     # Delete all rows in existing tables, so if we need to run this a second time,
     # we won't add duplicates
-    Location.query.delete()
+    Location.query.delete()     # comment this out if load_indices is being run
     Study.query.delete()
     Activation.query.delete()
 
@@ -172,6 +192,7 @@ def load_clusters():
         print "Topics.txt seeding row", count_clusters
 
         count_clusters += 1
+
 
 if __name__ == "__main__":
     connect_to_db(app)
