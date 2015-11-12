@@ -128,10 +128,6 @@
 
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
-    <div id="refs_div">
-      <ol id="references">
-      </ol>
-    </div>
 
 
     <!-- BRAINBROWSER SCRIPT HERE -->
@@ -160,7 +156,7 @@
             var z = Math.round(pick_info.point.z);
             viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
             d3.select("svg").remove(); // clear current D3
-
+            
             // Query the db and display the results in D3
             var d3Url = "/d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
@@ -173,27 +169,20 @@
           };
         }); 
       });
-    }
+    };
 
     render_brainbrowser();
 
+    // To do: convert this to run Brainbrowser on load 
 
     </script>
 
     <!--END BRAINBROWSER SCRIPT--> 
 
     <!-- Also initialize D3 through form submission --> 
+
+    <!-- TO DO implement radius --> 
     <script>
-
-    function displayRefs(results) {
-      var refs = document.getElementById("references"); 
-      results.forEach(function (item) {
-        var refitem = document.createElement("li");
-        refitem.appendChild(document.createTextNode(item));
-        refs.appendChild(refitem);
-      })
-    }
-
     function getJson() {
       d3.select("#d3_here").selectAll("svg").remove();
       var xVal = $("#xcoord");
