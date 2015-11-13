@@ -25,7 +25,7 @@ def index():
 ################################################################################
 
 @app.route('/d3.json')
-def get_json(radius=2, scale=70000):
+def give_d3(radius=3, scale=70000):
     """ Returns a master dictionary with xyz at the root node.
 
     Test with parameters: -60, 0, -30, 3    (Middle temporal gyrus)
@@ -81,28 +81,32 @@ def get_json(radius=2, scale=70000):
 ################################################################################
 
 @app.route('/citations')
-def give_citations(radius=2):
+def give_citations(radius=3):
     """Returns a list of text citations associated with some location."""
 
     x_coord = float(request.args.get("xcoord"))
     y_coord = float(request.args.get("ycoord"))
     z_coord = float(request.args.get("zcoord"))
+    print x_coord
 
     pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
-    citations = Location.get_references(pmids)
+    print pmids, type(pmids)
+    citations = {'citations': Study.get_references(pmids)}
+    print citations
 
-    return citations
+    return jsonify(citations)
 
 ################################################################################
 #  ROUTE FOR RETRIEVING OTHER LOCATIONS ASSOCIATED WITH A WORD
 ################################################################################
 
 @app.route('/locations')
-def get_locations():
+def give_locations():
+    """Returns a list of locations associated with some word."""
 
     word = request.args.get("word")
-    loc_ids = Location.get_locations_from_word(word)
-    return loc_ids[0]
+    loc_ids = {'locations': Location.get_locations_from_word(word)}
+    return jsonify(loc_ids)
 
 
 if __name__ == "__main__":

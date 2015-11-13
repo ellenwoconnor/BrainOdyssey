@@ -198,10 +198,11 @@ class Study(db.Model):
         """
 
         reference_data = cls.query.filter(cls.pmid.in_(pmids)).all()
+        print reference_data
         citations = []
 
         for reference in reference_data:
-            citation = reference.authors + ". (" + str(reference.year) + "). " + reference.title + reference.journal + "."
+            citation = reference.authors + ". (" + str(reference.year) + "). " + reference.title + " " + reference.journal + "."
             citations.append(citation)
 
         return citations

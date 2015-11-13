@@ -55,12 +55,12 @@
 
     #brainbrowser_here {
       height:600px;
-      width:500px;
+      width:600px;
     }
 
     #d3_here {
       height:600px;
-      width:500px;
+      width:600px;
     }
 
     #title {
@@ -128,7 +128,11 @@
 
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
-
+    <br><br>
+    <div class="non_inline">
+      <ol id="references">
+      </ol>
+    </div>
 
     <!-- BRAINBROWSER SCRIPT HERE -->
 
@@ -156,7 +160,7 @@
             var z = Math.round(pick_info.point.z);
             viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
             d3.select("svg").remove(); // clear current D3
-            
+
             // Query the db and display the results in D3
             var d3Url = "/d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
@@ -165,7 +169,7 @@
                       "&ycoord=" + String(y) + 
                       "&zcoord=" + String(z);
             $.get(d3Url, initializeD3);
-            // $.get(citationUrl, displayRefs);
+            $.get(citationUrl, displayRefs);
           };
         }); 
       });
@@ -183,6 +187,22 @@
 
     <!-- TO DO implement radius --> 
     <script>
+
+
+    function displayRefs(results) {
+
+      var citations = results['citations']
+      var refs = document.getElementById("references"); 
+      $('li').remove() // Remove any references left from last click 
+
+      for (i=0; i<citations.length; i++) {
+        var li = document.createElement("li");
+        li.innerHTML=citations[i];
+        $("#references").append(li);
+      };
+
+    }
+
     function getJson() {
       d3.select("#d3_here").selectAll("svg").remove();
       var xVal = $("#xcoord");
@@ -206,7 +226,7 @@
         console.log("Initializing D3.");
         console.dir(results);
 
-        var width = 500,
+        var width = 600,
             height = 600,
             root; 
 
@@ -295,9 +315,12 @@
             // When user clicks on a node get the locations 
             var url = '/locations?word=' + String(d.name)
             console.log(url)
-            $.get('/locations', {word: String(d.name)}, function(result){console.log(result)});
-            // To do: figure out why this route isn't working (I think
-            // it's related to the route returning a python tuple?)
+            $.get('/locations', {word: String(d.name)}, function(result) {
+              locations = result[locations]
+              for (var i=0; i<locations.length; i++) {
+                x_coord, y_coord, z_coord = locations[i]
+              }
+              console.log(result)});
             // $.get(url, function(result) {console.log(result)});
 
           }
