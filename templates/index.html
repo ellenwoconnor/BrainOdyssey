@@ -139,7 +139,7 @@
     <script>
 
     function render_brainbrowser() {
-      BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
+      window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         
         // Render the viewer and load an mniobj brain surface
         viewer.render();
@@ -177,16 +177,39 @@
 
     render_brainbrowser();
 
-    // To do: convert this to run Brainbrowser on load 
-
-    </script>
 
     <!--END BRAINBROWSER SCRIPT--> 
 
     <!-- Also initialize D3 through form submission --> 
 
     <!-- TO DO implement radius --> 
-    <script>
+
+    // Re-render brainbrowser with markers on x-y-z locations
+    // function update_brainbrowser(result):
+    //   BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
+          
+    //       viewer.render();
+    //       viewer.setClearColor(parseInt('ffffff', 16)); 
+    //       viewer.loadModelFromURL("static/models/brain-surface.obj"); 
+
+    //       var locations = result['locations'];
+
+    //       for (var i=0; i<locations.length; i++) {
+    //         x = locations[i][0]
+    //         , y, z = locations[i];
+    //         viewer.drawDot(x, y, z)
+
+    // When a user clicks on a node, put dots on the locations associated wiht that word
+    function displayLocations(results) {
+      var locations = results['locations'];
+      console.log(locations.length);
+      for (var i=0; i<locations.length; i++) {
+        x = locations[i][0];
+        y = locations[i][1];
+        z = locations[i][2];
+        viewer.drawDot(x, y, z, 2);
+      };
+    };
 
 
     function displayRefs(results) {
@@ -204,27 +227,24 @@
     }
 
     function getJson() {
+
       d3.select("#d3_here").selectAll("svg").remove();
       var xVal = $("#xcoord");
       var yVal = $("#ycoord");
       var zVal = $("#zcoord");
       console.log("Getting JSON.");
       var url = "/d3.json?" + $("#xyz_coord").serialize()
-      console.log(url); 
       $.get(url, initializeD3);
     }
 
     $('#submit-xyz').on('click', getJson);
 
-    </script>
 
     <!--D3 SCRIPT HERE -->
-
-    <script>
+    
 
     function initializeD3(results) {   
         console.log("Initializing D3.");
-        console.dir(results);
 
         var width = 600,
             height = 600,
@@ -311,18 +331,7 @@
           } else {
             d.children = d._children; 
             d._children = null;
-
-            // When user clicks on a node get the locations 
-            var url = '/locations?word=' + String(d.name)
-            console.log(url)
-            $.get('/locations', {word: String(d.name)}, function(result) {
-              locations = result[locations]
-              for (var i=0; i<locations.length; i++) {
-                x_coord, y_coord, z_coord = locations[i]
-              }
-              console.log(result)});
-            // $.get(url, function(result) {console.log(result)});
-
+            $.get('/locations', {word: String(d.name)}, displayLocations);
           }
           update();
         }

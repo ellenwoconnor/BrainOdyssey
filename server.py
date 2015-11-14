@@ -28,7 +28,7 @@ def index():
 def give_d3(radius=3, scale=70000):
     """ Returns a master dictionary with xyz at the root node.
 
-    Test with parameters: -60, 0, -30, 3    (Middle temporal gyrus)
+    Test with parameters: 40, -45, -25    (Fusiform face area) 
     """
 
     x_coord = float(request.args.get("xcoord"))
@@ -102,7 +102,8 @@ def give_citations(radius=3):
 
 @app.route('/locations')
 def give_locations():
-    """Returns a list of locations associated with some word."""
+    """Returns a list of locations (tuples of x-y-z coordinates)
+    associated with some word."""
 
     word = request.args.get("word")
     loc_ids = {'locations': Location.get_locations_from_word(word)}
