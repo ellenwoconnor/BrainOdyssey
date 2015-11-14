@@ -4,6 +4,7 @@ from jinja2 import StrictUndefined
 from model import Location,  Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
 from flask import Flask, render_template, jsonify, request
 
+
 app = Flask(__name__)
 
 # If you use an undefined variable in Jinja2, it raises an error.
@@ -106,7 +107,7 @@ def give_locations():
     associated with some word."""
 
     word = request.args.get("word")
-    loc_ids = {'locations': Location.get_locations_from_word(word)}
+    loc_ids = {word: Location.get_locations_from_word(word)}
     return jsonify(loc_ids)
 
 

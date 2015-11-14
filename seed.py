@@ -5,8 +5,15 @@ from model import Location, Activation, Study, StudyTerm, Term, TermCluster, Clu
 from model import connect_to_db, db
 from server import app
 
+
 def load_indices():
     """Adds surface x-y-z locations and their BrainBrowser index."""
+
+    # First we populate the locations table with all of the surface locations 
+    # tracked by Brainbrowser, along with their Brainbrowser indices (which I 
+    # am going to use as the location ID - i.e. the primary key)
+
+    Location.query.delete()
 
     mniobj = open('static/models/brain-surface2.obj')
     coords = mniobj.readlines()
@@ -17,21 +24,18 @@ def load_indices():
         x = round(float(row[0]), 0)
         y = round(float(row[1]), 0)
         z = round(float(row[2]), 0)
-        location_to_add = Location(x_coord=x, y_coord=y, z_coord=z,
-                                       space=None, index=i)
+        location_to_add = Location(location_id = i, x_coord=x, y_coord=y, z_coord=z)
         db.session.add(location_to_add)
 
     db.session.commit()
 
-
-# Maybe it makes sense to add an MNI obj table here
 
 def load_studies():
     """Load data from database.txt into Location, Activation, Study tables."""
 
     # Delete all rows in existing tables, so if we need to run this a second time,
     # we won't add duplicates
-    Location.query.delete()     # comment this out if load_indices is being run
+    # Location.query.delete()
     Study.query.delete()
     Activation.query.delete()
 
@@ -64,7 +68,6 @@ def load_studies():
         x = float(row[2])
         y = float(row[3])
         z = float(row[4])
-        space = row[5]
 
         # Check whether PMID is already in Study; if not, add it to db.
         study_obj = Study.get_study_by_pmid(pmid)
@@ -77,15 +80,14 @@ def load_studies():
 
         # Check whether xyz is already in Location; if not, add it to db and
         # retrieve its location ID (an autoincrementing primary key).
-        # If xyz already in Location, retrieve its location_id.
-        location_obj = Location.check_by_xyz_space(x, y, z, space)
+        # If xyz already in Location, get its location_id.
+        location_obj = Location.check_by_xyz(x, y, z)
 
         if location_obj is None:
-            location_to_add = Location(x_coord=x, y_coord=y, z_coord=z,
-                                       space=space)
+            location_to_add = Location(x_coord=x, y_coord=y, z_coord=z)
             db.session.add(location_to_add)
             db.session.commit()
-            loc_id = Location.check_by_xyz_space(x, y, z, space).location_id
+            loc_id = Location.check_by_xyz(x, y, z).location_id
         else:
             loc_id = location_obj.location_id
 
@@ -201,6 +203,7 @@ if __name__ == "__main__":
     db.create_all()
 
     # Import different types of data
+    load_indices()
     load_studies()
-    load_studies_terms()
-    load_clusters()
+    # load_studies_terms()
+    # load_clusters()

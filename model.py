@@ -2,7 +2,7 @@
 
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, Index
 from sqlalchemy.sql import label
 
 
@@ -21,36 +21,31 @@ class Location(db.Model):
     """An individual pinpoint location in the brain represented by an x-y-z
     coordinate."""
 
-    __tablename__ = "locations"
+    __tablename__ = 'locations'
 
     location_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     x_coord = db.Column(db.Float, nullable=False)
     y_coord = db.Column(db.Float, nullable=False)
     z_coord = db.Column(db.Float, nullable=False)
     label = db.Column(db.String, nullable=True)
-    space = db.Column(db.String(30), nullable=True)  # MNI, TAL or Unknown
+    # space = db.Column(db.String(30), nullable=True)  # MNI, TAL or Unknown
 
     activation = db.relationship('Activation')
+    __table_args__ = (Index('location_index', 'x_coord', 'y_coord', 'z_coord'),)
 
 
 ### Retrieve xyz from db ######################################################
 
     @classmethod
-    def check_by_xyz_space(cls, x=None, y=None, z=None, space=None):
+    def check_by_xyz(cls, x=None, y=None, z=None):
         """Returns existing xyz instance of the class (None if no such
         instance exists).
-
-            >>> Location.check_by_xyz_space(60.0, 30.0, 10.0, space='MNI')
-            <Location id=63589 x=60 y=30 z=10 label=None space=MNI>
-            >>> Location.check_by_xyz_space(200.0, 30.0, 10.0, space='MNI') == None
-            True
 
         Used in database seeding"""
 
         location_obj = cls.query.filter(cls.x_coord == x,
                                         cls.y_coord == y,
-                                        cls.z_coord == z,
-                                        cls.space == space).first()
+                                        cls.z_coord == z).first()
         return location_obj
 
 
@@ -58,18 +53,19 @@ class Location(db.Model):
 
     @classmethod
     def get_locations_from_word(cls, word, freq=.1):
-        """Returns all xyz coordinates associated with a word.
+        """Returns all surface xyz coordinates associated with a word.
 
             >>> len(Location.get_locations_from_word('semantic'))
             27279
 
         """
 
-        location_coords = db.session.query(
+        location_coords = db.session.query(cls.location_id,
             cls.x_coord, cls.y_coord, cls.z_coord).join(
             Activation).join(Study).join(StudyTerm).filter(
             StudyTerm.word == word,
-            StudyTerm.frequency > freq).group_by(Activation.location_id).all()
+            StudyTerm.frequency > freq,
+            cls.location_id < 81925).group_by(Activation.location_id).all()
 
         return location_coords
 

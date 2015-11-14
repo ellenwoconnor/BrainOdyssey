@@ -86,6 +86,10 @@
       font-weight: bold;
     }
 
+    h4 {
+      text-align: center;
+    }
+
   </style>
 
   <script>BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")</script>
@@ -125,7 +129,7 @@
           <br><br>
       </form>
     
-
+    <h4 id="header"></h4>
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
     <br><br>
@@ -134,10 +138,13 @@
       </ol>
     </div>
 
-    <!-- BRAINBROWSER SCRIPT HERE -->
 
     <script>
 
+    // BRAINBROWSER FUNCTIONS HERE /////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Re-render brainbrowser to clear off the markers when someone clicks on the brain?
     function render_brainbrowser() {
       window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         
@@ -160,6 +167,7 @@
             var z = Math.round(pick_info.point.z);
             viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
             d3.select("svg").remove(); // clear current D3
+            $('#header').html('Displaying functions associated with: ' + x + ' ' + y + ' ' + z + '. Click on a word for more information about it.')
 
             // Query the db and display the results in D3
             var d3Url = "/d3.json?xcoord=" + String(x) + 
@@ -169,50 +177,41 @@
                       "&ycoord=" + String(y) + 
                       "&zcoord=" + String(z);
             $.get(d3Url, initializeD3);
-            $.get(citationUrl, displayRefs);
+            $.get(citationUrl, displayRefsForLocation);
           };
         }); 
       });
     };
 
-    render_brainbrowser();
+    render_brainbrowser()
 
-
-    <!--END BRAINBROWSER SCRIPT--> 
-
-    <!-- Also initialize D3 through form submission --> 
-
-    <!-- TO DO implement radius --> 
-
-    // Re-render brainbrowser with markers on x-y-z locations
-    // function update_brainbrowser(result):
-    //   BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
-          
-    //       viewer.render();
-    //       viewer.setClearColor(parseInt('ffffff', 16)); 
-    //       viewer.loadModelFromURL("static/models/brain-surface.obj"); 
-
-    //       var locations = result['locations'];
-
-    //       for (var i=0; i<locations.length; i++) {
-    //         x = locations[i][0]
-    //         , y, z = locations[i];
-    //         viewer.drawDot(x, y, z)
+    // CUSTOM FUNCTIONS HERE /////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
     // When a user clicks on a node, put dots on the locations associated wiht that word
     function displayLocations(results) {
-      var locations = results['locations'];
-      console.log(locations.length);
+
+      d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
+      $('li').remove()  // clear the references associated with the original location 
+
+      var word = Object.keys(results);
+      $('#header').html('Displaying patterns of activation associated with the word "' + word + '." Click on a location for more information about it.');
+
+      var locations = results[word];
       for (var i=0; i<locations.length; i++) {
-        x = locations[i][0];
-        y = locations[i][1];
-        z = locations[i][2];
-        viewer.drawDot(x, y, z, 2);
+        id = locations[i][0]
+        xVal = locations[i][1];
+        yVal = locations[i][2];
+        zVal = locations[i][3];
+        viewer.drawDot(xVal, yVal, zVal, 2);
       };
+
     };
 
 
-    function displayRefs(results) {
+    // When the user clicks on a location in the brain, display citations for 
+    // that location
+    function displayRefsForLocation(results) {
 
       var citations = results['citations']
       var refs = document.getElementById("references"); 
@@ -226,9 +225,15 @@
 
     }
 
+    // function displayRefsForTerm(results) {
+    //   TO DO: implement me
+    // }
+
+
     function getJson() {
 
       d3.select("#d3_here").selectAll("svg").remove();
+
       var xVal = $("#xcoord");
       var yVal = $("#ycoord");
       var zVal = $("#zcoord");
@@ -240,7 +245,8 @@
     $('#submit-xyz').on('click', getJson);
 
 
-    <!--D3 SCRIPT HERE -->
+    // D3 FUNCTIONS HERE //////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     
 
     function initializeD3(results) {   
