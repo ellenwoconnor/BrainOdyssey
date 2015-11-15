@@ -188,7 +188,7 @@
     // CUSTOM FUNCTIONS HERE /////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    // When a user clicks on a node, put dots on the locations associated wiht that word
+    // When a user clicks on a node, put dots on the locations associated with that word
     function displayLocations(results) {
 
       d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
@@ -199,7 +199,7 @@
 
       var locations = results[word];
       for (var i=0; i<locations.length; i++) {
-        id = locations[i][0]
+        id = locations[i][0];
         xVal = locations[i][1];
         yVal = locations[i][2];
         zVal = locations[i][3];
@@ -213,9 +213,9 @@
     // that location
     function displayRefsForLocation(results) {
 
-      var citations = results['citations']
+      var citations = results['citations'];
       var refs = document.getElementById("references"); 
-      $('li').remove() // Remove any references left from last click 
+      $('li').remove(); // Remove any references left from last click 
 
       for (i=0; i<citations.length; i++) {
         var li = document.createElement("li");
@@ -226,9 +226,15 @@
     }
 
     // function displayRefsForTerm(results) {
-    //   TO DO: implement me
+    //   TO DO: implement me!
     // }
 
+    function displayIntensity() {
+      d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
+      $('li').remove() 
+      viewer.loadColorMapFromURL('/colors');
+      viewer.loadIntensityDataFromURL('/intensity');
+    }
 
     function getJson() {
 
@@ -337,10 +343,12 @@
           } else {
             d.children = d._children; 
             d._children = null;
-            $.get('/locations', {word: String(d.name)}, displayLocations);
+            // $.get('/locations', {word: String(d.name)}, displayLocations);
+            displayIntensity(); 
           }
           update();
         }
+        // I think update() needs to go in the "if" clause? 
 
         // Returns a list of all nodes under the root.
         function flatten(root) {

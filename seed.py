@@ -28,7 +28,7 @@ def load_indices():
         db.session.add(location_to_add)
 
     db.session.commit()
-
+    mniobj.close()
 
 def load_studies():
     """Load data from database.txt into Location, Activation, Study tables."""
@@ -41,9 +41,10 @@ def load_studies():
 
     skip = True
     count_studies = 0
+    database = open("seed_data/database.txt")
 
     # Parse txt file and convert to appropriate data types for seeding
-    for row in open("seed_data/database.txt"):
+    for row in database:
 
         # Skip the header of the txt file
         if skip:
@@ -100,6 +101,8 @@ def load_studies():
         print "Database.txt seeding row ", count_studies
         count_studies += 1
 
+    database.close()
+
 def load_studies_terms():
     """Load info from studies_terms.txt into StudyTerm & Term tables.
 
@@ -116,8 +119,9 @@ def load_studies_terms():
 
     skip = True
     count_studies_terms = 0
+    studies_terms = open("seed_data/studies_terms.txt")
 
-    for row in open("seed_data/studies_terms.txt"):
+    for row in studies_terms:
         # Skip the first line of the file
         if skip:
             skip = False
@@ -194,6 +198,8 @@ def load_clusters():
         print "Topics.txt seeding row", count_clusters
 
         count_clusters += 1
+
+    studies_terms.close()
 
 
 if __name__ == "__main__":

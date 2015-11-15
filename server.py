@@ -111,6 +111,26 @@ def give_locations():
     return jsonify(loc_ids)
 
 
+@app.route('/intensity')
+def give_intensity():
+    """ Generates an intensity data file to pass to the Brainbrowser color map."""
+
+    intensity_file = open('static/models/cortical-thickness.txt')
+    intensity_data = ''.join(intensity_file.readlines())
+    intensity_file.close()
+
+    return intensity_data
+
+@app.route('/colors')
+def give_color_map():
+
+    color_map_file = open('static/models/spectral.txt')
+    color_data = ''.join(color_map_file.readlines())
+    color_map_file.close()
+
+    return color_data
+
+
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
     # that we invoke the DebugToolbarExtension
