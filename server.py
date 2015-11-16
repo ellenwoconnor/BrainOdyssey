@@ -88,12 +88,9 @@ def give_citations(radius=3):
     x_coord = float(request.args.get("xcoord"))
     y_coord = float(request.args.get("ycoord"))
     z_coord = float(request.args.get("zcoord"))
-    print x_coord
 
     pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
-    print pmids, type(pmids)
     citations = {'citations': Study.get_references(pmids)}
-    print citations
 
     return jsonify(citations)
 
@@ -107,13 +104,35 @@ def give_locations():
     associated with some word."""
 
     word = request.args.get("word")
-    loc_ids = {word: Location.get_locations_from_word(word)}
+    loc_ids = {word: Location.get_xyzs_from_word(word)}
     return jsonify(loc_ids)
 
 
 @app.route('/intensity')
 def give_intensity():
-    """ Generates an intensity data file to pass to the Brainbrowser color map."""
+    """Generates an intensity data file to pass to the Brainbrowser color map."""
+
+    word = request.args.get("word")
+    activations = Activation.get_activations_from_word(word)
+    print "Actiations: ", activations
+    intensity_data = ""
+
+    for i in range(0, 81925):
+        # If i was a location where there was no activation, add 0 to the string
+        if i not in activations:
+            intensity_data = intensity_data + "0\n"
+        else:
+            intensity_data = intensity_data + str(activations[i]) + "\n"
+
+    # newfile = open('test_intensity.txt', 'w')
+    # newfile.write(intensity_data)
+    # newfile.close()
+
+    return intensity_data
+
+@app.route('/intensitytest')
+def give_example_intensity():
+    """Returns the intensity data provided by Brainbrowser."""
 
     intensity_file = open('static/models/cortical-thickness.txt')
     intensity_data = ''.join(intensity_file.readlines())
@@ -123,6 +142,7 @@ def give_intensity():
 
 @app.route('/colors')
 def give_color_map():
+    """Retrieves a color map for Brainbrowser."""
 
     color_map_file = open('static/models/spectral.txt')
     color_data = ''.join(color_map_file.readlines())

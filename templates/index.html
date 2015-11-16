@@ -185,7 +185,7 @@
 
     render_brainbrowser()
 
-    // CUSTOM FUNCTIONS HERE /////////////////////////////////////////////
+    // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     // When a user clicks on a node, put dots on the locations associated with that word
@@ -199,13 +199,11 @@
 
       var locations = results[word];
       for (var i=0; i<locations.length; i++) {
-        id = locations[i][0];
-        xVal = locations[i][1];
-        yVal = locations[i][2];
-        zVal = locations[i][3];
+        xVal = locations[i][0];
+        yVal = locations[i][1];
+        zVal = locations[i][2];
         viewer.drawDot(xVal, yVal, zVal, 2);
       };
-
     };
 
 
@@ -229,11 +227,14 @@
     //   TO DO: implement me!
     // }
 
-    function displayIntensity() {
+    function displayIntensity(word) {
+
       d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
       $('li').remove() 
-      viewer.loadColorMapFromURL('/colors');
-      viewer.loadIntensityDataFromURL('/intensity');
+      viewer.loadColorMapFromURL('/colors'); // This route is working 
+      intensity_url = '/intensity?word=' + word;
+      viewer.loadIntensityDataFromURL(intensity_url, {min: -1.0, max:1.0});
+
     }
 
     function getJson() {
@@ -343,8 +344,7 @@
           } else {
             d.children = d._children; 
             d._children = null;
-            // $.get('/locations', {word: String(d.name)}, displayLocations);
-            displayIntensity(); 
+            displayIntensity(d.name); 
           }
           update();
         }

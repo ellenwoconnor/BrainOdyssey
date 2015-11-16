@@ -49,10 +49,10 @@ class Location(db.Model):
         return location_obj
 
 
-### Look up locations associated with a word #################################
+### Look up xyz locations associated with a word ################################
 
     @classmethod
-    def get_locations_from_word(cls, word, freq=.1):
+    def get_xyzs_from_word(cls, word, freq=.1):
         """Returns all surface xyz coordinates associated with a word.
 
             >>> len(Location.get_locations_from_word('semantic'))
@@ -60,7 +60,7 @@ class Location(db.Model):
 
         """
 
-        location_coords = db.session.query(cls.location_id,
+        location_coords = db.session.query(
             cls.x_coord, cls.y_coord, cls.z_coord).join(
             Activation).join(Study).join(StudyTerm).filter(
             StudyTerm.word == word,
@@ -156,6 +156,24 @@ class Activation(db.Model):
 
         # Return all studies matching the specified location
         return pmids
+
+### Look up location ids associated with a word ################################
+
+    @classmethod
+    def get_activations_from_word(cls, word, scale=4):
+
+        activations = db.session.query(
+            cls.location_id, func.sum(StudyTerm.frequency)).join(
+            Study).join(StudyTerm).filter(
+            StudyTerm.word == word, cls.location_id < 81925).group_by(
+            cls.location_id).all()
+
+        location_ids = {}
+        for element in activations:
+            location_ids[element[0]] = element[1] * scale
+
+        return location_ids
+
 
 ###########################################################################
 # STUDY TABLE
