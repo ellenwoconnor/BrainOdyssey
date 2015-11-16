@@ -115,7 +115,7 @@
           <label for="zcoord">Z:
               <input type="text" name="zcoord" id="zcoord">
           </label>
-          <label for="radius">Radius:
+<!--           <label for="radius">Radius:
               <select name="radius" id="radius">
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -124,7 +124,7 @@
                 <option value="6">6</option>
                 <option value="7">7</option>
               </select>
-          </label>
+          </label> -->
           <button type="button" id="submit-xyz">Select these coordinates!</button>
           <br><br>
       </form>
@@ -148,28 +148,33 @@
     function render_brainbrowser() {
       window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         
-        // Render the viewer and load an mniobj brain surface
-        viewer.render();
-        // Set the background to white
-        viewer.setClearColor(parseInt('ffffff', 16)); 
-        // Load the mniobj 
-        viewer.loadModelFromURL("static/models/brain-surface.obj"); 
+        viewer.render(); // render the 3d viewer
+        viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
+        viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj
 
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
-        $("#brainbrowser_here").click(function(event) {
+        $("#brainbrowser_here").click( function(event) {
 
-          // If ctrlClick, get the xyz coordinates 
+          // If ctrlClick, get the xyz coordinates,
+          // draw a dot at that locations,
+          // clear any old D3,
+          // and tell the user to expect the new D3 
           if (!event.shiftKey && !event.ctrlKey) return;
           var pick_info = viewer.pick();
           if (pick_info) {
             var x = Math.round(pick_info.point.x);
             var y = Math.round(pick_info.point.y);
             var z = Math.round(pick_info.point.z);
+            // TO DO: Reset to neutral intensity data (all zeroes)
             viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
             d3.select("svg").remove(); // clear current D3
-            $('#header').html('Displaying functions associated with: ' + x + ' ' + y + ' ' + z + '. Click on a word for more information about it.')
+            $('#header').html('Loading functions associated with: ' 
+              + x + ' ' 
+              + y + ' ' 
+              + z + '. Click on a word for more information about it.')
 
-            // Query the db and display the results in D3
+            // Get the JSON for D3 and
+            // get any relevant references related to the x-y-z location 
             var d3Url = "/d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
                       "&zcoord=" + String(z);
@@ -189,13 +194,15 @@
     ////////////////////////////////////////////////////////////////////////////
 
     // When a user clicks on a node, put dots on the locations associated with that word
+    // Not currently in use (too slow - replaced with intensity data)
     function displayLocations(results) {
 
       d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
       $('li').remove()  // clear the references associated with the original location 
 
       var word = Object.keys(results);
-      $('#header').html('Displaying patterns of activation associated with the word "' + word + '." Click on a location for more information about it.');
+      $('#header').html('Loading patterns of activation associated with the word "' 
+        + word + '". Click on a location for more information about it.');
 
       var locations = results[word];
       for (var i=0; i<locations.length; i++) {
@@ -204,11 +211,12 @@
         zVal = locations[i][2];
         viewer.drawDot(xVal, yVal, zVal, 2);
       };
-    };
+
+    }
 
 
     // When the user clicks on a location in the brain, display citations for 
-    // that location
+    // that location 
     function displayRefsForLocation(results) {
 
       var citations = results['citations'];
@@ -223,21 +231,42 @@
 
     }
 
+    // When the user clicks on a word or cluster, display citations relevant to that word
+    // or cluster. 
     // function displayRefsForTerm(results) {
     //   TO DO: implement me!
     // }
 
-    function displayIntensity(word) {
+    // When the user clicks on a word, project an 
+    // intensity map onto the brain reflecting activation associated with it
+    function displayIntensity(key, word) {
 
+      console.log(key)
       d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
-      $('li').remove() 
-      viewer.loadColorMapFromURL('/colors'); // This route is working 
-      intensity_url = '/intensity?word=' + word;
-      viewer.loadIntensityDataFromURL(intensity_url, {min: -1.0, max:1.0});
+      $('li').remove() // remove the old references 
+
+      $('#header').html('Loading patterns of activation associated with ' 
+        + key + '. Click on a location for more information about it.');
+
+      viewer.loadColorMapFromURL('/colors');  
+
+      if (word == true) {    // If the key is a word 
+        intensity_url = '/word_intensity?word=' + key; 
+      }
+      // If the key is a topic ID 
+      else {  
+        intensity_url = '/topic_intensity?topic=' + key; 
+      }; 
+
+      // How to dynamically get the max value without a separate db query? 
+      viewer.loadIntensityDataFromURL(intensity_url, {min: 0, max:3.0});
 
     }
 
-    function getJson() {
+
+    // When the user clicks on a location on the MNI brain, get the words 
+    // associated with that location and feed it into D3 
+    function getJsonForD3() {
 
       d3.select("#d3_here").selectAll("svg").remove();
 
@@ -249,7 +278,7 @@
       $.get(url, initializeD3);
     }
 
-    $('#submit-xyz').on('click', getJson);
+    $('#submit-xyz').on('click', getJsonForD3);
 
 
     // D3 FUNCTIONS HERE //////////////////////////////////////////////////////
@@ -339,16 +368,16 @@
         function click(d) {
           if (d3.event.defaultPrevented) return; // ignore drag
           if (d.children) {  
-            d._children = d.children;   
-            d.children = null;  
+            displayIntensity(d.name, word=false); 
+          //   // d._children = d.children;   
+          //   // d.children = null;  
           } else {
-            d.children = d._children; 
-            d._children = null;
-            displayIntensity(d.name); 
+            // d.children = d._children; 
+            // d._children = null;
+            displayIntensity(d.name, word=true); 
           }
           update();
         }
-        // I think update() needs to go in the "if" clause? 
 
         // Returns a list of all nodes under the root.
         function flatten(root) {

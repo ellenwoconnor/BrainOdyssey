@@ -58,7 +58,7 @@ class Location(db.Model):
             >>> len(Location.get_locations_from_word('semantic'))
             27279
 
-        """
+        Used to place dots on the brain in locations associated with a word."""
 
         location_coords = db.session.query(
             cls.x_coord, cls.y_coord, cls.z_coord).join(
@@ -122,7 +122,6 @@ class Activation(db.Model):
             Getting all studies with radius 2
             Getting all studies with radius 3
             [15737663, 16481375, 17121746, 21908871]
-
         """
 
         # If the radius is provided, use it get studies reporting activation
@@ -157,16 +156,25 @@ class Activation(db.Model):
         # Return all studies matching the specified location
         return pmids
 
-### Look up location ids associated with a word ################################
+### Look up location ids associated with a word or list of words #############
 
     @classmethod
     def get_activations_from_word(cls, word, scale=4):
+        """Returns a dictionary of {location IDs : scaled frequencies} to plot
+        on the MNI brain, associated with one or more words."""
 
-        activations = db.session.query(
-            cls.location_id, func.sum(StudyTerm.frequency)).join(
-            Study).join(StudyTerm).filter(
-            StudyTerm.word == word, cls.location_id < 81925).group_by(
-            cls.location_id).all()
+        if isinstance(word, list):  # If we received a list of words as an arg:
+            activations = db.session.query(
+                cls.location_id, func.sum(StudyTerm.frequency)).join(
+                Study).join(StudyTerm).filter(
+                StudyTerm.word.in_(word), cls.location_id < 81925).group_by(
+                cls.location_id).all()
+        else:   # If we received a single word as an argument:
+            activations = db.session.query(
+                cls.location_id, func.sum(StudyTerm.frequency)).join(
+                Study).join(StudyTerm).filter(
+                StudyTerm.word == word, cls.location_id < 81925).group_by(
+                cls.location_id).all()
 
         location_ids = {}
         for element in activations:
@@ -220,6 +228,17 @@ class Study(db.Model):
             citations.append(citation)
 
         return citations
+
+        
+    ### Retrieve studies associated with one or more words #####################
+
+    @classmethod
+    def get_references(cls, words):
+        """Returns a list of references associated with specified PubMed IDs.
+        """
+
+        # TO DO 
+
 
     ### Get information about a study ########################################
 
@@ -326,7 +345,6 @@ class Term(db.Model):
             return True
 
 
-
 ###########################################################################
 # TERMCLUSTER TABLE
 ###########################################################################
@@ -372,7 +390,7 @@ class TermCluster(db.Model):
         return [cluster[0] for cluster in clusters]
 
 
-    ### Get information about a study ########################################
+    ### Get all clusters associated with a list of words ######################
 
     @classmethod
     def get_word_cluster_pairs(cls, clusters, words):
@@ -390,6 +408,17 @@ class TermCluster(db.Model):
 
         return associations
 
+    ### Get all words associated with a particular cluster #####################
+
+    @classmethod
+    def get_words_in_cluster(cls, cluster):
+        """Returns a list of words associated with some cluster."""
+
+        print "Getting the words associated with cluster", cluster
+
+        words = db.session.query(cls.word).filter(cls.cluster_id == cluster).all()
+
+        return [word[0] for word in words]
 
 ###########################################################################
 # CLUSTER TABLE
@@ -411,7 +440,9 @@ class Cluster(db.Model):
 
     @classmethod
     def check_for_cluster(cls, cluster_id):
-        """Returns True if a cluster_id is already in the table, False if not."""
+        """Returns True if a cluster_id is already in the table, False if not.
+
+        Used in database seeding"""
 
         if cls.query.filter(cls.cluster_id == cluster_id).first() is None:
             return False
