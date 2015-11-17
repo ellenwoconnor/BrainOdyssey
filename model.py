@@ -229,17 +229,6 @@ class Study(db.Model):
 
         return citations
 
-        
-    ### Retrieve studies associated with one or more words #####################
-
-    @classmethod
-    def get_references(cls, words):
-        """Returns a list of references associated with specified PubMed IDs.
-        """
-
-        # TO DO 
-
-
     ### Get information about a study ########################################
 
     def __repr__(self):
@@ -302,6 +291,22 @@ class StudyTerm(db.Model):
         # List will be used to constrain the cluster search
         return terms, [term[0] for term in terms if term[1] > freq_threshold]
 
+
+    @classmethod
+    def get_pmid_by_term(cls, words, limit=25):
+        """Returns a list of the top n studies associated with a list of words
+        [w1] or [w1, w2, w3...].
+
+        PMIDs used to generate references."""
+
+        print "Getting all studies associated with ", words
+
+        pmids = db.session.query(cls.pmid).filter(
+            cls.word.in_(words)).group_by(
+            cls.pmid).order_by(
+            cls.frequency).limit(limit).all()
+
+        return [pmid[0] for pmid in pmids]
 
 ###########################################################################
 # TERM TABLE
@@ -419,6 +424,7 @@ class TermCluster(db.Model):
         words = db.session.query(cls.word).filter(cls.cluster_id == cluster).all()
 
         return [word[0] for word in words]
+
 
 ###########################################################################
 # CLUSTER TABLE

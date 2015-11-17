@@ -173,20 +173,25 @@
               + y + ' ' 
               + z + '. Click on a word for more information about it.')
 
-            // Get the JSON for D3 and
-            // get any relevant references related to the x-y-z location 
+            // Get the JSON for D3 and initialize it 
             var d3Url = "/d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
                       "&zcoord=" + String(z);
-            var citationUrl = "/citations?xcoord=" + String(x) + 
-                      "&ycoord=" + String(y) + 
-                      "&zcoord=" + String(z);
             $.get(d3Url, initializeD3);
-            $.get(citationUrl, displayRefsForLocation);
+
+            var refsUrl = "xcoord=" + String(x) + 
+                          "&ycoord=" + String(y) + 
+                          "&zcoord=" + String(z) + 
+                          "&options=location";
+            displayRefs(refsUrl);
+
+            var intensityUrl = "options=clear"
+            displayIntensity(intensityUrl)
+
           };
         }); 
       });
-    };
+    }
 
     render_brainbrowser()
 
@@ -201,7 +206,7 @@
       $('li').remove()  // clear the references associated with the original location 
 
       var word = Object.keys(results);
-      $('#header').html('Loading patterns of activation associated with the word "' 
+      $('#header').html('Loading information about "' 
         + word + '". Click on a location for more information about it.');
 
       var locations = results[word];
@@ -215,58 +220,44 @@
     }
 
 
-    // When the user clicks on a location in the brain, display citations for 
-    // that location 
-    function displayRefsForLocation(results) {
+    // When the user clicks on a location, a word, or a topic, get
+    // the citations relevant to that search and insert them into the DOM. 
+    function displayRefs(url) {
 
-      var citations = results['citations'];
-      var refs = document.getElementById("references"); 
-      $('li').remove(); // Remove any references left from last click 
+      var referencesUrl = '/citations.json?' + url;
+      $.get(referencesUrl, function (results) {
 
-      for (i=0; i<citations.length; i++) {
-        var li = document.createElement("li");
-        li.innerHTML=citations[i];
-        $("#references").append(li);
-      };
+        var citations = results['citations'];
+        var refs = document.getElementById("references"); 
+        $('li').remove(); // Remove any references left from last click 
+
+        for (i=0; i<citations.length; i++) {
+          var li = document.createElement("li");
+          li.innerHTML=citations[i];
+          $("#references").append(li);
+        };
+
+      });
 
     }
 
-    // When the user clicks on a word or cluster, display citations relevant to that word
-    // or cluster. 
-    // function displayRefsForTerm(results) {
-    //   TO DO: implement me!
-    // }
-
-    // When the user clicks on a word, project an 
+    // When the user clicks on a word (word=true) or cluster (word=false), project an 
     // intensity map onto the brain reflecting activation associated with it
-    function displayIntensity(key, word) {
+    function displayIntensity(url) {
 
-      console.log(key)
       d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
-      $('li').remove() // remove the old references 
-
-      $('#header').html('Loading patterns of activation associated with ' 
-        + key + '. Click on a location for more information about it.');
+      $('li').remove(); // remove the old references 
 
       viewer.loadColorMapFromURL('/colors');  
-
-      if (word == true) {    // If the key is a word 
-        intensity_url = '/word_intensity?word=' + key; 
-      }
-      // If the key is a topic ID 
-      else {  
-        intensity_url = '/topic_intensity?topic=' + key; 
-      }; 
-
-      // How to dynamically get the max value without a separate db query? 
-      viewer.loadIntensityDataFromURL(intensity_url, {min: 0, max:3.0});
+      var intensityUrl = '/intensity?' + url;
+      viewer.loadIntensityDataFromURL(intensityUrl, {min:0, max:3.0});
 
     }
 
 
     // When the user clicks on a location on the MNI brain, get the words 
     // associated with that location and feed it into D3 
-    function getJsonForD3() {
+    function getLocationInfoForD3() {
 
       d3.select("#d3_here").selectAll("svg").remove();
 
@@ -276,12 +267,13 @@
       console.log("Getting JSON.");
       var url = "/d3.json?" + $("#xyz_coord").serialize()
       $.get(url, initializeD3);
+
     }
 
-    $('#submit-xyz').on('click', getJsonForD3);
+    $('#submit-xyz').on('click', getLocationInfoForD3);
 
 
-    // D3 FUNCTIONS HERE //////////////////////////////////////////////////////
+    // D3 JAVASCRIPT HERE //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     
 
@@ -366,16 +358,20 @@
 
         // Toggle children on click.
         function click(d) {
+
           if (d3.event.defaultPrevented) return; // ignore drag
           if (d.children) {  
-            displayIntensity(d.name, word=false); 
-          //   // d._children = d.children;   
-          //   // d.children = null;  
+            var url = "cluster=" + d.name + "&options=cluster"; 
+            displayRefs(url);
+            displayIntensity(url);
+            $('#header').html('Loading information about this topic.');
           } else {
-            // d.children = d._children; 
-            // d._children = null;
-            displayIntensity(d.name, word=true); 
+            var url = "word=" + d.name + "&options=word";
+            displayRefs(url);
+            displayIntensity(url);
+            $('#header').html('Loading information about ' + d.name + '.');      
           }
+
           update();
         }
 

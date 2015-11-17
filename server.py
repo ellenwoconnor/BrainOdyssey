@@ -28,7 +28,7 @@ def index():
 
 @app.route('/d3.json')
 def give_d3(radius=3, scale=70000):
-    """ Returns a master dictionary with xyz at the root node.
+    """ Returns a dictionary with xyz at the root node.
 
     Test with parameters: 40, -45, -25    (Fusiform face area)
     """
@@ -83,26 +83,52 @@ def give_d3(radius=3, scale=70000):
 #  ROUTE FOR GENERATING CITATIONS
 ################################################################################
 
-@app.route('/citations')
-def give_citations(radius=3):
-    """Returns a list of text citations associated with some location."""
+@app.route('/citations.json')
+def generate_citations(radius=3):
+    """Returns a list of text citations associated with some location, word
+    or topic."""
 
-    x_coord = float(request.args.get("xcoord"))
-    y_coord = float(request.args.get("ycoord"))
-    z_coord = float(request.args.get("zcoord"))
+    clicked_on = request.args.get("options")
 
-    pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
+    if clicked_on == 'location':
+        x_coord = float(request.args.get("xcoord"))
+        y_coord = float(request.args.get("ycoord"))
+        z_coord = float(request.args.get("zcoord"))
+
+        pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
+
+    elif clicked_on == 'word':
+        word = request.args.get('word')
+ 
+        # Get the pmids for a word
+        pmids = StudyTerm.get_pmid_by_term(word)
+
+    elif clicked_on == 'cluster':
+        cluster = request.args.get('cluster')
+
+        # Get the words for a cluster
+        # Then get the top pmids for the words
+        words = TermCluster.get_words_in_cluster(cluster)
+        pmids = StudyTerm.get_pmid_by_term(words)
+        print pmids
+
     citations = {'citations': Study.get_references(pmids)}
 
     return jsonify(citations)
 
 
 ################################################################################
-#  ROUTE FOR RETRIEVING OTHER LOCATIONS ASSOCIATED WITH A WORD
+#  ROUTES FOR GENERATING ACTIVATION PATTERNS IN BRAINBROWSER
 ################################################################################
 
-@app.route('/locations')
-def give_locations():
+@app.route('/maxval')
+def generate_max():
+    """Returns the maximum value"""
+
+    # TO DO 
+
+@app.route('/locations.json')
+def generate_locations():
     """Returns a list of locations [(x, y, z), (x, y, z) ...]
     associated with some word."""
 
@@ -111,47 +137,38 @@ def give_locations():
     return jsonify(loc_ids)
 
 
-@app.route('/word_intensity')
-def generate_word_intensity():
+@app.route('/intensity')
+def generate_intensity():
     """Generates an intensity data file related to a particular word."""
-    
-    word = request.args.get("word")
+
+    clicked_on = request.args.get("options")
+    intensity_vals = ""
+
+    if clicked_on == 'cluster':
+        cluster = request.args.get("cluster")
+        word = TermCluster.get_words_in_cluster(cluster)
+
+    elif clicked_on == 'word':
+        word = request.args.get("word")
+
+    elif clicked_on == 'clear':
+        for i in range (0, 81925):
+            intensity_vals = intensity_vals + "0\n"
+
+        return intensity_vals
+
     activations = Activation.get_activations_from_word(word)
-    print "Activations: ", activations
-    intensity_data = ""
 
     # For each Brainbrowser index i, if there was no activation, add 0 to the string
     # If there was activation, add its frequency value.
     for i in range(0, 81925):
 
         if i not in activations:
-            intensity_data = intensity_data + "0\n"
+            intensity_vals = intensity_vals + "0\n"
         else:
-            intensity_data = intensity_data + str(activations[i]) + "\n"
+            intensity_vals = intensity_vals + str(activations[i]) + "\n"
 
-    return intensity_data
-
-
-@app.route('/topic_intensity')
-def generate_topic_intensity():
-    """Generates an intensity data file related to a cluster of words."""
-
-    topic = request.args.get("topic")
-    words = TermCluster.get_words_in_cluster(topic)
-    activations = Activation.get_activations_from_word(words)
-    print "Activations: ", activations
-    intensity_data = ""
-
-    # For each Brainbrowser index i, if there was no activation, add 0 to the string
-    # If there was activation, add its frequency value.
-    for i in range(0, 81925):
-
-        if i not in activations:
-            intensity_data = intensity_data + "0\n"
-        else:
-            intensity_data = intensity_data + str(activations[i]) + "\n"
-
-    return intensity_data
+    return intensity_vals
 
 
 @app.route('/intensitytest')
@@ -166,7 +183,7 @@ def generate_example_intensity():
 
 
 @app.route('/colors')
-def give_color_map():
+def generate_color_map():
     """Retrieves a color map for Brainbrowser."""
 
     color_map_file = open('static/models/spectral.txt')
@@ -174,6 +191,11 @@ def give_color_map():
     color_map_file.close()
 
     return color_data
+
+
+################################################################################
+# Helper functions
+################################################################################
 
 
 if __name__ == "__main__":
