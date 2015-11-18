@@ -128,6 +128,14 @@
           <button type="button" id="submit-xyz">Select these coordinates!</button>
           <br><br>
       </form>
+
+      <form id="word_search_form">
+        <label for="word_search">Enter a word here to search for activation patterns:
+          <input type="text" name="word_search">
+        </label>
+        <button type="button" id="submit_word">Search</button>
+        <br><br>
+      </form>
     
     <h4 id="header"></h4>
     <div id="brainbrowser_here" class="inline_box"></div>
@@ -362,16 +370,17 @@
           if (d3.event.defaultPrevented) return; // ignore drag
           if (d.children) {  
             var url = "cluster=" + d.name + "&options=cluster"; 
-            displayRefs(url);
-            displayIntensity(url);
             $('#header').html('Loading information about this topic.');
+            // Regenerate D3 
           } else {
             var url = "word=" + d.name + "&options=word";
             displayRefs(url);
             displayIntensity(url);
-            $('#header').html('Loading information about ' + d.name + '.');      
+            $('#header').html('Loading information about ' + d.name + '.');  
+            // Regenerate d3 
           }
-
+          displayRefs(url);
+          displayIntensity(url);
           update();
         }
 
