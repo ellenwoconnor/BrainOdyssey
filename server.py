@@ -179,9 +179,7 @@ def generate_intensity():
     elif clicked_on == 'cluster':
         cluster = request.args.get('cluster')
         word = TermCluster.get_words_in_cluster(cluster)
-        print "******* COMPLETED WORD CLUSTERS *********"
         activations = Activation.get_activations_from_word(word)
-        print "******* COMPLETED ACTIVATIONS *********"
 
     elif clicked_on == 'word':
         word = request.args.get('word')
@@ -201,8 +199,9 @@ def generate_intensity():
                 intensity_vals = intensity_vals + "0\n"
             else:
                 intensity_vals = intensity_vals + str(activations[i]) + "\n"
+    else:
+        intensity_vals = None
 
-    print "***** EVERYTHING COMPLETE *************"
     return intensity_vals
 
 

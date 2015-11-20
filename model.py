@@ -361,7 +361,7 @@ class StudyTerm(db.Model):
 
 
     @classmethod
-    def get_pmid_by_term(cls, word, limit=30):
+    def get_pmid_by_term(cls, word, limit=40):
         """Returns a list of the top n studies associated with a list of words
         [w1] or [w1, w2, w3...].
 
@@ -382,6 +382,9 @@ class StudyTerm(db.Model):
                 cls.frequency).limit(limit).all()
 
         return [pmid[0] for pmid in pmids]
+
+
+
 
 ###########################################################################
 # TERM TABLE

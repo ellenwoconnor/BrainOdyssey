@@ -140,9 +140,8 @@
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
-        viewer.loadColorMapFromURL('/colors'); 
-        displayIntensity('options=clear');
         viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj
+
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
 
@@ -189,52 +188,6 @@
     // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-
-
-    // OLD CODE ///////////////////////////////////////////////////////////////
-    // When the user clicks on a location, a word, or a topic, get
-    // the citations relevant to that search and insert them into the DOM. 
-    // function displayRefs(url) {
-
-    //   var referencesUrl = '/citations.json?' + url;
-    //   $.get(referencesUrl, function (results) {
-    //     // depends on results comig in as {'citations': [list]}
-    //     var citations = results['citations'];
-    //     var refs = document.getElementById("references"); 
-    //     $('li').remove(); // Remove any references left from last click 
-
-    //     for (i=0; i<citations.length; i++) {
-    //       var li = document.createElement("li");
-    //       li.innerHTML=citations[i];
-    //       $("#references").append(li);
-    //     };
-
-    //   });
-
-    // }
-
-    // When a user clicks on a node, put dots on the locations associated with that word
-    // Not currently in use (too slow - replaced with intensity data)
-    // function displayLocations(results) {
-
-    //   d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
-    //   $('li').remove()  // clear the references associated with the original location 
-    //   var word = Object.keys(results);
-    //   var locations = results[word];
-    //   for (var i=0; i<locations.length; i++) {
-    //     xVal = locations[i][0];
-    //     yVal = locations[i][1];
-    //     zVal = locations[i][2];
-    //     viewer.drawDot(xVal, yVal, zVal, 2);
-    //   };
-
-    // }
-
-    // function getJSONforD3(url) {
-    //   var d3Url = '/d3.json?' + url;
-    //   $.get(d3Url, initializeD3);
-    // }
-
     function clearScreen() {
       d3.select("svg").remove();
       displayIntensity('options=clear');  
@@ -280,6 +233,7 @@
 
     }
 
+
     // When the user clicks on a word or topic, project an 
     // intensity map onto the brain reflecting activation associated with it
     function displayIntensity(url) {
@@ -293,27 +247,13 @@
 
     }
 
+
     function getClusterChildren(cluster_id) {
 
       url = '/d3topic.json?cluster_id=' + cluster_id;
       $.get(url, initializeD3);
 
     }
-
-    // When the user submits a form
-    // containing x-y-z coordinates, get the words 
-    // associated with that location and feed them into D3 
-    // function getLocationInfoForD3() {
-    //   // d3.select("#d3_here").selectAll("svg").remove();
-    //   var xVal = $("#xcoord");
-    //   var yVal = $("#ycoord");
-    //   var zVal = $("#zcoord");
-
-    //   var url = "/d3_by_location.json?" + $("#xyz_coord").serialize();
-    //   $.get(url, initializeD3);
-
-    // }
-
 
     // Event handlers to generate intensity or D3 when user manually submits
     // a word or a coordinate, or clicks on a reference
@@ -322,16 +262,26 @@
 
     $("#submit-xyz").on("click", function(evt) {
 
-      clearScreen();
-
       var x = String($("#xcoord").val());
       var y = String($("#ycoord").val());
       var z = String($("#zcoord").val());
+
+      // Form validation 
+      if (isNaN(x) == false || isNaN(y) == false || isNaN(z) == false ||
+        x > 100 || x < -100 || y > 100 || y < -100 || z > 100 || z < -100) {
+        alert("Please enter coordinates between -100 and 100.");
+        return false;
+      }
+
+      clearScreen();
       msg = x + " " + y + " " + z;
       displayHeader(searchType="Location", searchParameter=msg);
       viewer.drawDot(x, y, z, 2, 0x3399CC)
 
-      var url = "xcoord=" + x + "&ycoord=" + y + "&zcoord=" + z + "&options=location";
+      var url = "xcoord=" + x + 
+                "&ycoord=" + y + 
+                "&zcoord=" + z + 
+                "&options=location";
       $.get('/d3.json?' + url, initializeD3);
       displayRefs(url)
 
@@ -462,6 +412,7 @@
 
           if (d3.event.defaultPrevented) return; // ignore drag
           if (d.children) {  
+            if (d.name === '') { return }; // ignore placeholder nodes w/ no name
             displayHeader(seachType="Topic #", searchParameter=d.name);
             var url = "cluster=" + d.name + "&options=cluster"; 
             getClusterChildren(d.name);
