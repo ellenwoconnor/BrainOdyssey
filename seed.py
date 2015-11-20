@@ -7,13 +7,21 @@ from server import app
 
 
 def load_indices():
-    """Adds surface x-y-z locations and their BrainBrowser index."""
+    """Adds surface x-y-z locations and their BrainBrowser index.
 
-    # First we populate the locations table with all of the surface locations 
-    # tracked by Brainbrowser, along with their Brainbrowser indices (which I 
+    File format:    x-coord y-coord z-coord
+                    x-coord y-coord z-coord
+
+    Row number corresponds to MNI object index.
+
+    Source: Brainbrowser MNI object file"""
+
+    print "Seeding indices..."
+    # First we populate the locations table with all of the surface locations
+    # tracked by Brainbrowser, along with their Brainbrowser indices (which I
     # am going to use as the location ID - i.e. the primary key)
 
-    Location.query.delete()
+    # Location.query.delete()
 
     mniobj = open('static/models/brain-surface2.obj')
     coords = mniobj.readlines()
@@ -30,14 +38,14 @@ def load_indices():
     db.session.commit()
     mniobj.close()
 
-def load_studies():
-    """Load data from database.txt into Location, Activation, Study tables."""
 
-    # Delete all rows in existing tables, so if we need to run this a second time,
-    # we won't add duplicates
-    # Location.query.delete()
-    Study.query.delete()
-    Activation.query.delete()
+def load_studies():
+    """Loads data from database.txt into Location, Activation, Study tables.
+
+    File format:    PMID \t doi \t x \t y \t z \t space \t peak_id \t table_id 
+                    \t table_num \t title \t authors \t year \t journal \t
+
+    Source: Neurosynth database.txt file"""
 
     skip = True
     count_studies = 0
@@ -103,10 +111,12 @@ def load_studies():
 
     database.close()
 
+
 def load_studies_terms():
-    """Load info from studies_terms.txt into StudyTerm & Term tables.
+    """Loads info from studies_terms.txt into StudyTerm & Term tables.
 
     File format: R ID \t pmid \t word \t frequency
+
     Source: Neurosynth features.txt, transformed in R to long format."""
 
 
@@ -163,16 +173,54 @@ def load_studies_terms():
         count_studies_terms += 1
 
 
+def load_study_clusters():
+    """Loads info about topically clustered studies into Study table.
+
+    File format: PMID \t study cluster ID
+
+    Source: generated from a K-means cluster analysis to group related studies; see 
+    DimReductionSelectingK.py for more details"""
+
+    print "Seeding study clusters..."
+
+    study_clusters = open('Clusters.txt')
+    for row in study_clusters:
+        row = row.rstrip().split('\t')
+        pmid = int(row[0])
+        cluster_id = int(row[1])
+
+        study = Study.query.filter(Study.pmid == pmid).first()
+        if study:
+            study.study_cluster = cluster_id
+
+    db.session.commit()
+    study_clusters.close()
+
+
 def load_clusters():
-    """Load info from topics.txt file into Cluster, TermCluster tables"""
+    """Load info from topics.txt file into Cluster, TermCluster tables
+
+    File format: R row id,Topic XXX,R column ID,word
+
+        where XXX represents a number between 0-400
+        R ids can be discarded during seeding 
+
+    Source: topic clustering data from Neurosynth, converted to long format
+    in R prior to seeding. 
+    Notes: the words tracked in this clustering are not in perfect
+    alignment with those tracked in studies_terms.txt. Approximately 2000 of the 
+    terms in studies_terms have a topical cluster, the remaining ~1000 do not.
+    This number could be improved by stemming. Many of the words not tracked
+    in clusters are multi-word phrases."""
 
     # Delete whatever's in the db already
     Cluster.query.delete()
     TermCluster.query.delete()
 
     count_clusters = 0
+    topics_fileobj = open('seed_data/topics.csv')
 
-    for row in open('seed_data/topics.csv'):
+    for row in topics_fileobj:
 
         row = row.rstrip().split(',')
 
@@ -199,7 +247,7 @@ def load_clusters():
 
         count_clusters += 1
 
-    studies_terms.close()
+    topics_fileobj.close()
 
 
 if __name__ == "__main__":
@@ -208,8 +256,15 @@ if __name__ == "__main__":
     # In case tables haven't been created, create them
     db.create_all()
 
+    # Delete all rows in existing tables, so if we need to run this a second time,
+    # we won't add duplicates
+    # Location.query.delete()
+    # Study.query.delete()
+    # Activation.query.delete()
+
     # Import different types of data
-    load_indices()
-    load_studies()
-    # load_studies_terms()
-    # load_clusters()
+    # load_indices()
+    # load_studies()
+    # load_study_clusters()
+    load_studies_terms()
+    load_clusters()

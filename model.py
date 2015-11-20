@@ -4,6 +4,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, desc, Index
 from sqlalchemy.sql import label
+from operator import itemgetter
 
 
 db = SQLAlchemy()
@@ -34,6 +35,14 @@ class Location(db.Model):
     __table_args__ = (Index('location_index', 'x_coord', 'y_coord', 'z_coord'),)
 
 
+    def __repr__(self):
+        """Displays info about a location."""
+
+        return "<Location id=%d x=%d y=%d z=%d label=%s space=%s>" % (
+            self.location_id, self.x_coord, self.y_coord,
+            self.z_coord, self.label, self.space)
+
+
 ### Retrieve xyz from db ######################################################
 
     @classmethod
@@ -55,10 +64,8 @@ class Location(db.Model):
     def get_xyzs_from_word(cls, word, freq=.1):
         """Returns all surface xyz coordinates associated with a word.
 
-            >>> len(Location.get_locations_from_word('semantic'))
-            27279
-
-        Used to place dots on the brain in locations associated with a word."""
+        Used to place dots on the brain in locations associated with a word.
+        DEPRECATED - NO LONGER IN USE."""
 
         location_coords = db.session.query(
             cls.x_coord, cls.y_coord, cls.z_coord).join(
@@ -68,19 +75,6 @@ class Location(db.Model):
             cls.location_id < 81925).group_by(Activation.location_id).all()
 
         return location_coords
-
-        # Note that these searches typically yield locations in the tens of thousands
-        # e.g. 'emotion' is linked to almost the entire surface
-
-
-###  Display coordinate information ############################################
-
-    def __repr__(self):
-        """Displays info about a location."""
-
-        return "<Location id=%d x=%d y=%d z=%d label=%s space=%s>" % (
-            self.location_id, self.x_coord, self.y_coord,
-            self.z_coord, self.label, self.space)
 
 
 ###########################################################################
@@ -97,7 +91,6 @@ class Activation(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey('locations.location_id'),
                             nullable=False)
 
-    # relationships
     study = db.relationship('Study')
     location = db.relationship('Location')
 
@@ -122,6 +115,7 @@ class Activation(db.Model):
             Getting all studies with radius 2
             Getting all studies with radius 3
             [15737663, 16481375, 17121746, 21908871]
+
         """
 
         # If the radius is provided, use it get studies reporting activation
@@ -156,12 +150,16 @@ class Activation(db.Model):
         # Return all studies matching the specified location
         return pmids
 
+
 ### Look up location ids associated with a word or list of words #############
 
     @classmethod
-    def get_activations_from_word(cls, word, scale=4):
-        """Returns a dictionary of {location IDs : scaled frequencies} to plot
-        on the MNI brain, associated with one or more words."""
+    def get_activations_from_word(cls, word):
+        """Returns a dictionary of {location IDs : intensities},
+         associated with one or more words.
+
+
+        Intensities are scaled using the maximum frequency returned"""
 
         if isinstance(word, list):  # If we received a list of words as an arg:
             activations = db.session.query(
@@ -169,6 +167,7 @@ class Activation(db.Model):
                 Study).join(StudyTerm).filter(
                 StudyTerm.word.in_(word), cls.location_id < 81925).group_by(
                 cls.location_id).all()
+
         else:   # If we received a single word as an argument:
             activations = db.session.query(
                 cls.location_id, func.sum(StudyTerm.frequency)).join(
@@ -176,9 +175,56 @@ class Activation(db.Model):
                 StudyTerm.word == word, cls.location_id < 81925).group_by(
                 cls.location_id).all()
 
+
+        max_freq = max(activations, key=itemgetter(1))[1]
+
         location_ids = {}
-        for element in activations:
-            location_ids[element[0]] = element[1] * scale
+
+        for activation in activations:
+            location_ids[activation[0]] = activation[1]/max_freq
+
+        return location_ids
+
+
+### Look up location ids associated with a list of studies ##################
+
+    @classmethod
+    def get_activations_from_studies(cls, studies, pmid):
+        """Returns a dictionary of {locations : intensities} associated with a series
+        of studies.
+
+        Intensity is defined by whether the study PMID matches the one selected
+        by the user.
+
+        TO DO: add some of this to server.py"""
+
+        activations = db.session.query(cls.location_id, cls.pmid).filter(
+            cls.pmid.in_(studies), cls.location_id < 81925).all()
+
+        location_ids = {}
+
+        for activation in activations:
+
+            # Scale the intensity according to (a) whether the study is the one
+            # the user originally clicked on, and (b) how many times that location
+            # was reported as active.
+
+            if activation[0] not in location_ids:
+                if activation[1] == pmid:
+                    location_ids[activation[0]] = 1
+                else:
+                    location_ids[activation[0]] = .5
+
+            else:
+                if activation[1] == pmid:
+                    location_ids[activation[0]] += 1
+                else:
+                    location_ids[activation[0]] += .5
+
+        max_freq = max(location_ids.values())
+
+        for location in location_ids:
+            location_ids[location] / max_freq
 
         return location_ids
 
@@ -198,6 +244,7 @@ class Study(db.Model):
     authors = db.Column(db.String(300))
     year = db.Column(db.Integer)
     journal = db.Column(db.String(200))
+    study_cluster = db.Column(db.Integer)
 
 
     ### Check if study is already in db ########################################
@@ -209,25 +256,58 @@ class Study(db.Model):
 
         Used in database seeding"""
 
+        print "Found study ", pmid
         study_obj = cls.query.filter(cls.pmid == pmid).first()
         return study_obj
 
     ### Retrieve studies associated with location #############################
+
+    # @classmethod
+    # def get_references(cls, pmids):
+    #     """Returns a list of references associated with specified PubMed IDs.
+    #     """
+
+    #     references = cls.query.filter(cls.pmid.in_(pmids)).all()
+    #     citations = []
+
+    #     for reference in references:
+    #         citations.append(reference.authors + ". (" +
+    #             str(reference.year) + "). " +
+    #             reference.title + " " +
+    #             reference.journal + ".")
+
+    #     return {'citations': citations}
+
+
+############ FUNCTIONS RELATED TO STUDY CLUSTER ###############################
+############ FUNCTIONS RELATED TO STUDY CLUSTER ###############################
+                ############ BELOW ###############################
 
     @classmethod
     def get_references(cls, pmids):
         """Returns a list of references associated with specified PubMed IDs.
         """
 
-        reference_data = cls.query.filter(cls.pmid.in_(pmids)).all()
-        print reference_data
-        citations = []
+        references = cls.query.filter(cls.pmid.in_(pmids)).all()
+        citations = {}
 
-        for reference in reference_data:
-            citation = reference.authors + ". (" + str(reference.year) + "). " + reference.title + " " + reference.journal + "."
-            citations.append(citation)
+        for reference in references:
+            citation_text = reference.authors + ". (" + str(reference.year) + "). " + reference.title + " " + reference.journal + "."
+            citations[reference.pmid] = citation_text
 
         return citations
+
+    ### Retrieve studies associated with a study cluster #######################
+
+    def get_cluster_mates(self):
+        """Returns the other studies in a study cluster.
+        """
+
+        print "Getting all cluster mates associated with cluster ", self.study_cluster
+        cluster_mates = Study.query.filter(Study.study_cluster == self.study_cluster).all()
+
+        return [cluster_mate.pmid for cluster_mate in cluster_mates]
+
 
     ### Get information about a study ########################################
 
@@ -280,7 +360,8 @@ class StudyTerm(db.Model):
                 (u'voice', 0.522110847073), (u'children', 0.390914181003), ...
                 u'patient group', u'modulating', u'shifting', u'group',
                 u'information', u'impairments'])
-        """
+
+        Used to generate JSON for D3."""
 
         print "Getting all terms from studies", pmids
 
@@ -288,23 +369,30 @@ class StudyTerm(db.Model):
             cls.pmid.in_(pmids)).order_by(desc(cls.frequency)).limit(lim).all()
 
         # Terms will be used to build a json dictionary;
-        # List will be used to constrain the cluster search
+        # (Term, freq) lists will be used to constrain the cluster search
         return terms, [term[0] for term in terms if term[1] > freq_threshold]
 
 
     @classmethod
-    def get_pmid_by_term(cls, words, limit=25):
+    def get_pmid_by_term(cls, word, limit=25):
         """Returns a list of the top n studies associated with a list of words
         [w1] or [w1, w2, w3...].
 
         PMIDs used to generate references."""
 
-        print "Getting all studies associated with ", words
+        print "Getting all studies associated with ", word
 
-        pmids = db.session.query(cls.pmid).filter(
-            cls.word.in_(words)).group_by(
-            cls.pmid).order_by(
-            cls.frequency).limit(limit).all()
+        if isinstance(word, list):
+            pmids = db.session.query(cls.pmid).filter(
+                cls.word.in_(word)).group_by(
+                cls.pmid).order_by(
+                cls.frequency).limit(limit).all()
+
+        else:
+            pmids = db.session.query(cls.pmid).filter(
+                cls.word == word).group_by(
+                cls.pmid).order_by(
+                cls.frequency).limit(limit).all()
 
         return [pmid[0] for pmid in pmids]
 
@@ -386,7 +474,7 @@ class TermCluster(db.Model):
 
         """
 
-        print "Getting the top clusters associated with terms", terms[0:25]
+        print "Getting the top clusters associated with terms such as", terms[0:25]
 
         clusters = db.session.query(cls.cluster_id).filter(
             cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
@@ -465,7 +553,7 @@ def connect_to_db(app):
     """Connect the database to our Flask app."""
 
     # Configure to use our SQLite database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///odyssey.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///odyssey_v2.db'
     db.app = app
     db.init_app(app)
 

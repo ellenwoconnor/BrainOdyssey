@@ -26,12 +26,15 @@ def index():
 #  ROUTE FOR CREATING JSON FOR D3
 ################################################################################
 
-@app.route('/d3.json')
-def give_d3(radius=3, scale=70000):
-    """ Returns a dictionary with xyz at the root node.
+
+@app.route('/d3_by_location.json')
+def generate_d3_from_xyz(radius=3, scale=70000):
+    """ Returns a jsonified dictionary with xyz at the root node.
 
     Test with parameters: 40, -45, -25    (Fusiform face area)
     """
+
+    print "Generating data for D3."
 
     x_coord = float(request.args.get("xcoord"))
     y_coord = float(request.args.get("ycoord"))
@@ -78,6 +81,45 @@ def give_d3(radius=3, scale=70000):
 
     return jsonify(root_dict)
 
+@app.route('/d3_by_refs.json')
+def generate_d3_from_ref(scale=70000):
+
+    print "Generating data for D3."
+    pmid = request.args.get("pmid")
+
+    study = Study.get_study_by_pmid(pmid)
+    cluster_mates = study.get_cluster_mates()
+    terms_for_dict, words = StudyTerm.get_terms_by_pmid(cluster_mates)
+    top_clusters = TermCluster.get_top_clusters(words)
+    associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
+
+    # Make the root node:
+    root_dict = {'name': '', 'children': []}
+
+    # Build the terminal nodes (leaves) first using (wd, freq) tuples
+    # Output: {word: {'name': word, 'size': freq}, word2: ... }
+    leaves = {}
+    for (word, freq) in terms_for_dict:
+        if word not in leaves:
+            leaves[word] = {'name': word, 'size': freq * scale}
+        else:
+            leaves[word]['size'] += freq * scale
+
+    # Embed the leaves in the clusters:
+    # Output: {cluster_id: {'name': ID, 'children': [...]}, ... }
+    clusters = {}
+    for (cluster_id, word) in associations:
+        if cluster_id not in clusters:
+            clusters[cluster_id] = {'name': cluster_id, 'children': [leaves[word]]}
+        else:
+            clusters[cluster_id]['children'].append(leaves[word])
+
+    # Put the clusters in the root dictionary
+    # Output: {'name': root, children: [{'name': id, 'children': []}, ...]
+    for cluster in top_clusters:
+        root_dict['children'].append(clusters[cluster])
+
+    return jsonify(root_dict)
 
 ################################################################################
 #  ROUTE FOR GENERATING CITATIONS
@@ -86,7 +128,7 @@ def give_d3(radius=3, scale=70000):
 @app.route('/citations.json')
 def generate_citations(radius=3):
     """Returns a list of text citations associated with some location, word
-    or topic."""
+    or topic (cluster)."""
 
     clicked_on = request.args.get("options")
 
@@ -99,7 +141,7 @@ def generate_citations(radius=3):
 
     elif clicked_on == 'word':
         word = request.args.get('word')
- 
+
         # Get the pmids for a word
         pmids = StudyTerm.get_pmid_by_term(word)
 
@@ -107,12 +149,11 @@ def generate_citations(radius=3):
         cluster = request.args.get('cluster')
 
         # Get the words for a cluster
-        # Then get the top pmids for the words
+        # Then get the top studies for the words
         words = TermCluster.get_words_in_cluster(cluster)
         pmids = StudyTerm.get_pmid_by_term(words)
-        print pmids
 
-    citations = {'citations': Study.get_references(pmids)}
+    citations = Study.get_references(pmids)
 
     return jsonify(citations)
 
@@ -121,11 +162,6 @@ def generate_citations(radius=3):
 #  ROUTES FOR GENERATING ACTIVATION PATTERNS IN BRAINBROWSER
 ################################################################################
 
-@app.route('/maxval')
-def generate_max():
-    """Returns the maximum value"""
-
-    # TO DO 
 
 @app.route('/locations.json')
 def generate_locations():
@@ -139,35 +175,48 @@ def generate_locations():
 
 @app.route('/intensity')
 def generate_intensity():
-    """Generates an intensity data file related to a particular word."""
+    """Generates an intensity data file related to some user action.
+
+    Clear: clear the old intensity mapping
+    Cluster: intensity mapping associated with a topic cluster
+    Word: intensity mapping associated with a particular word
+    Study: intensity mapping associated with a study cluster"""
 
     clicked_on = request.args.get("options")
     intensity_vals = ""
+    activations = None
 
-    if clicked_on == 'cluster':
-        cluster = request.args.get("cluster")
-        word = TermCluster.get_words_in_cluster(cluster)
-
-    elif clicked_on == 'word':
-        word = request.args.get("word")
-
-    elif clicked_on == 'clear':
+    if clicked_on == 'clear':
         for i in range (0, 81925):
             intensity_vals = intensity_vals + "0\n"
 
         return intensity_vals
 
-    activations = Activation.get_activations_from_word(word)
+    elif clicked_on == 'cluster':
+        cluster = request.args.get('cluster')
+        word = TermCluster.get_words_in_cluster(cluster)
+        activations = Activation.get_activations_from_word(word)
+
+    elif clicked_on == 'word':
+        word = request.args.get('word')
+        activations = Activation.get_activations_from_word(word)
+
+    elif clicked_on == 'study':
+        pmid = request.args.get('pmid')
+        study = Study.get_study_by_pmid(pmid)
+        cluster_mates = study.get_cluster_mates()
+        activations = Activation.get_activations_from_studies(cluster_mates, pmid)
 
     # For each Brainbrowser index i, if there was no activation, add 0 to the string
     # If there was activation, add its frequency value.
-    for i in range(0, 81925):
+    if activations:
+        for i in range(0, 81925):
+            if i not in activations:
+                intensity_vals = intensity_vals + "0\n"
+            else:
+                intensity_vals = intensity_vals + str(activations[i]) + "\n"
 
-        if i not in activations:
-            intensity_vals = intensity_vals + "0\n"
-        else:
-            intensity_vals = intensity_vals + str(activations[i]) + "\n"
-
+        print "ACTIVATIONS:", activations
     return intensity_vals
 
 

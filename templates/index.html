@@ -23,14 +23,6 @@
   <script src="static/brainbrowser/surface-viewer/modules/loading.js"></script>
   <script src="static/brainbrowser/surface-viewer/modules/rendering.js"></script>
   <script src="static/brainbrowser/surface-viewer/modules/views.js"></script>
-  <script src="static/brainbrowser/volume-viewer.js"></script>
-  <script src="static/brainbrowser/volume-viewer/lib/display.js"></script>
-  <script src="static/brainbrowser/volume-viewer/lib/panel.js"></script>
-  <script src="static/brainbrowser/volume-viewer/lib/utils.js"></script>
-  <script src="static/brainbrowser/volume-viewer/modules/loading.js"></script>
-  <script src="static/brainbrowser/volume-viewer/modules/rendering.js"></script>
-  <script src="static/brainbrowser/volume-viewer/volume-loaders/overlay.js"></script>
-  <script src="static/brainbrowser/volume-viewer/volume-loaders/minc.js"></script>
 
   <style>
 
@@ -115,23 +107,13 @@
           <label for="zcoord">Z:
               <input type="text" name="zcoord" id="zcoord">
           </label>
-<!--           <label for="radius">Radius:
-              <select name="radius" id="radius">
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-              </select>
-          </label> -->
-          <button type="button" id="submit-xyz">Select these coordinates!</button>
+          <button type="button" id="submit-xyz">Select these coordinates</button>
           <br><br>
       </form>
 
       <form id="word_search_form">
         <label for="word_search">Enter a word here to search for activation patterns:
-          <input type="text" name="word_search">
+          <input type="text" name="word_search" id="word_search">
         </label>
         <button type="button" id="submit_word">Search</button>
         <br><br>
@@ -140,7 +122,6 @@
     <h4 id="header"></h4>
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
-    <br><br>
     <div class="non_inline">
       <ol id="references">
       </ol>
@@ -152,19 +133,19 @@
     // BRAINBROWSER FUNCTIONS HERE /////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    // Re-render brainbrowser to clear off the markers when someone clicks on the brain?
+    
     function render_brainbrowser() {
       window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
+        viewer.loadColorMapFromURL('/colors'); 
         viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj
-
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
-        $("#brainbrowser_here").click( function(event) {
+        $("#brainbrowser_here").click(function(event) {
 
           // If ctrlClick, get the xyz coordinates,
-          // draw a dot at that locations,
+          // draw a dot at that location,
           // clear any old D3,
           // and tell the user to expect the new D3 
           if (!event.shiftKey && !event.ctrlKey) return;
@@ -173,28 +154,27 @@
             var x = Math.round(pick_info.point.x);
             var y = Math.round(pick_info.point.y);
             var z = Math.round(pick_info.point.z);
-            // TO DO: Reset to neutral intensity data (all zeroes)
-            viewer.drawDot(x, y, z, 2, 0x3399CC); // display the click
-            d3.select("svg").remove(); // clear current D3
-            $('#header').html('Loading functions associated with: ' 
-              + x + ' ' 
-              + y + ' ' 
-              + z + '. Click on a word for more information about it.')
+            viewer.drawDot(x, y, z, 2, 0x3399CC);   // display the click 
+
+            // Clear UI
+            clearScreen();
+
+            // Show header
+            xyz = String(x) + " " + String(y) + " " + String(z);
+            displayHeader(searchType="Location", searchParameter=xyz);     
 
             // Get the JSON for D3 and initialize it 
-            var d3Url = "/d3.json?xcoord=" + String(x) + 
+            var d3Url = "/d3_by_location.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
                       "&zcoord=" + String(z);
             $.get(d3Url, initializeD3);
 
+            // Get the references and display them
             var refsUrl = "xcoord=" + String(x) + 
                           "&ycoord=" + String(y) + 
                           "&zcoord=" + String(z) + 
                           "&options=location";
             displayRefs(refsUrl);
-
-            var intensityUrl = "options=clear"
-            displayIntensity(intensityUrl)
 
           };
         }); 
@@ -206,79 +186,164 @@
     // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+
+
+    // OLD CODE ///////////////////////////////////////////////////////////////
+    // When the user clicks on a location, a word, or a topic, get
+    // the citations relevant to that search and insert them into the DOM. 
+    // function displayRefs(url) {
+
+    //   var referencesUrl = '/citations.json?' + url;
+    //   $.get(referencesUrl, function (results) {
+    //     // depends on results comig in as {'citations': [list]}
+    //     var citations = results['citations'];
+    //     var refs = document.getElementById("references"); 
+    //     $('li').remove(); // Remove any references left from last click 
+
+    //     for (i=0; i<citations.length; i++) {
+    //       var li = document.createElement("li");
+    //       li.innerHTML=citations[i];
+    //       $("#references").append(li);
+    //     };
+
+    //   });
+
+    // }
+
     // When a user clicks on a node, put dots on the locations associated with that word
     // Not currently in use (too slow - replaced with intensity data)
-    function displayLocations(results) {
+    // function displayLocations(results) {
 
-      d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
-      $('li').remove()  // clear the references associated with the original location 
+    //   d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
+    //   $('li').remove()  // clear the references associated with the original location 
+    //   var word = Object.keys(results);
+    //   var locations = results[word];
+    //   for (var i=0; i<locations.length; i++) {
+    //     xVal = locations[i][0];
+    //     yVal = locations[i][1];
+    //     zVal = locations[i][2];
+    //     viewer.drawDot(xVal, yVal, zVal, 2);
+    //   };
 
-      var word = Object.keys(results);
-      $('#header').html('Loading information about "' 
-        + word + '". Click on a location for more information about it.');
+    // }
 
-      var locations = results[word];
-      for (var i=0; i<locations.length; i++) {
-        xVal = locations[i][0];
-        yVal = locations[i][1];
-        zVal = locations[i][2];
-        viewer.drawDot(xVal, yVal, zVal, 2);
-      };
-
+    function clearScreen() {
+      d3.select("svg").remove();
+      displayIntensity('options=clear');  
+      $('li').remove(); 
     }
 
 
-    // When the user clicks on a location, a word, or a topic, get
-    // the citations relevant to that search and insert them into the DOM. 
+    function displayHeader(searchType, searchParameter) {
+      var msg = searchType + ": " + searchParameter;
+      $('#header').html(msg);
+    }
+
+
     function displayRefs(url) {
 
       var referencesUrl = '/citations.json?' + url;
       $.get(referencesUrl, function (results) {
 
-        var citations = results['citations'];
-        var refs = document.getElementById("references"); 
-        $('li').remove(); // Remove any references left from last click 
+        var citations = results;  
+        var refs = $("#references"); 
+        refs.empty(); 
 
-        for (i=0; i<citations.length; i++) {
+        for (var key in citations) {
+
           var li = document.createElement("li");
-          li.innerHTML=citations[i];
+          li.innerHTML=citations[key];
           $("#references").append(li);
+
+          var btn = document.createElement("button");
+          btn.setAttribute("id", key);
+          btn.setAttribute("class", "citation");
+          btn.innerHTML="See related activation";
+          li.appendChild(btn);
+
         };
+
+        clickReference();
 
       });
 
     }
 
+
     // When the user clicks on a word (word=true) or cluster (word=false), project an 
     // intensity map onto the brain reflecting activation associated with it
     function displayIntensity(url) {
 
-      d3.select('#d3_here').selectAll('svg').remove(); // clear the D3 visualization
-      $('li').remove(); // remove the old references 
-
       viewer.loadColorMapFromURL('/colors');  
       var intensityUrl = '/intensity?' + url;
-      viewer.loadIntensityDataFromURL(intensityUrl, {min:0, max:3.0});
+      viewer.loadIntensityDataFromURL(intensityUrl, {
+        min:0, 
+        max:1.0,
+      });
 
     }
 
 
-    // When the user clicks on a location on the MNI brain, get the words 
-    // associated with that location and feed it into D3 
+    // When the user submits a form
+    // containing x-y-z coordinates, get the words 
+    // associated with that location and feed them into D3 
     function getLocationInfoForD3() {
-
-      d3.select("#d3_here").selectAll("svg").remove();
-
+      // d3.select("#d3_here").selectAll("svg").remove();
       var xVal = $("#xcoord");
       var yVal = $("#ycoord");
       var zVal = $("#zcoord");
-      console.log("Getting JSON.");
-      var url = "/d3.json?" + $("#xyz_coord").serialize()
+      $('#header').html('Location: ' 
+        + x + ' ' 
+        + y + ' ' 
+        + z)
+      var url = "/d3_by_location.json?" + $("#xyz_coord").serialize();
       $.get(url, initializeD3);
 
     }
 
-    $('#submit-xyz').on('click', getLocationInfoForD3);
+
+
+    // Event handlers to generate intensity or D3 when user manually submits
+    // a word or a coordinate, or clicks on a reference
+
+    // Location --> d3 + references 
+    $('#submit-xyz').on('click', getLocationInfoForD3); 
+
+
+    // Word --> intensity + references 
+    $('#submit_word').on('click', function(evt) {
+
+      clearScreen();
+
+      var word = $('#word_search').val();
+      displayHeader(searchType="Word", searchParameter=word);
+
+      var url = "word=" + word + "&options=word";
+      displayIntensity(url);
+      displayRefs(url);
+
+    });
+    
+
+    // References --> intensity + D3  
+  function clickReference() {
+
+    $('.citation').on('click', function(evt) {
+
+      console.log("User clicked on a reference.");
+      clearScreen();
+      displayHeader(searchType="Study", searchParameter=this.id);
+
+      var url = 'pmid=' + this.id + '&options=study';
+
+      displayIntensity(url);
+
+      var d3Url = "/d3_by_refs.json?pmid=" + this.id;
+      $.get(d3Url, initializeD3);
+
+    });
+
+  }
 
 
     // D3 JAVASCRIPT HERE //////////////////////////////////////////////////////
@@ -364,24 +429,23 @@
               : "#fd8d3c"; // leaf node
         }
 
-        // Toggle children on click.
+        // Event handlers to deal with clicks on children: 
         function click(d) {
 
           if (d3.event.defaultPrevented) return; // ignore drag
           if (d.children) {  
+            displayHeader(seachType="Topic #", searchParameter=d.name);
             var url = "cluster=" + d.name + "&options=cluster"; 
-            $('#header').html('Loading information about this topic.');
-            // Regenerate D3 
           } else {
+            displayHeader(searchType="Word: ", searchParameter=d.name);
             var url = "word=" + d.name + "&options=word";
-            displayRefs(url);
-            displayIntensity(url);
-            $('#header').html('Loading information about ' + d.name + '.');  
-            // Regenerate d3 
           }
+
+          clearScreen();
           displayRefs(url);
           displayIntensity(url);
           update();
+
         }
 
         // Returns a list of all nodes under the root.
