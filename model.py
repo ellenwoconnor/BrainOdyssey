@@ -12,8 +12,18 @@ db = SQLAlchemy()
 ###########################################################################
 # MODEL DEFINITIONS
 ###########################################################################
-
-
+#
+#
+# Tables in this data model:
+#   Location:       individual x-y-z locations
+#   Study:          individual studies
+#   Activation:     location-study associations
+#   Term:           individual words
+#   StudyTerm:      associations between studies and words
+#   TermCluster:    associations between words and topical clusters
+#   cluster:        topical cluster IDs
+#
+#
 ###########################################################################
 # LOCATION TABLE
 ###########################################################################
@@ -65,7 +75,7 @@ class Location(db.Model):
         """Returns all surface xyz coordinates associated with a word.
 
         Used to place dots on the brain in locations associated with a word.
-        DEPRECATED - NO LONGER IN USE."""
+        [NO LONGER IN USE.]"""
 
         location_coords = db.session.query(
             cls.x_coord, cls.y_coord, cls.z_coord).join(
@@ -260,29 +270,6 @@ class Study(db.Model):
         study_obj = cls.query.filter(cls.pmid == pmid).first()
         return study_obj
 
-    ### Retrieve studies associated with location #############################
-
-    # @classmethod
-    # def get_references(cls, pmids):
-    #     """Returns a list of references associated with specified PubMed IDs.
-    #     """
-
-    #     references = cls.query.filter(cls.pmid.in_(pmids)).all()
-    #     citations = []
-
-    #     for reference in references:
-    #         citations.append(reference.authors + ". (" +
-    #             str(reference.year) + "). " +
-    #             reference.title + " " +
-    #             reference.journal + ".")
-
-    #     return {'citations': citations}
-
-
-############ FUNCTIONS RELATED TO STUDY CLUSTER ###############################
-############ FUNCTIONS RELATED TO STUDY CLUSTER ###############################
-                ############ BELOW ###############################
-
     @classmethod
     def get_references(cls, pmids):
         """Returns a list of references associated with specified PubMed IDs.
@@ -374,7 +361,7 @@ class StudyTerm(db.Model):
 
 
     @classmethod
-    def get_pmid_by_term(cls, word, limit=25):
+    def get_pmid_by_term(cls, word, limit=30):
         """Returns a list of the top n studies associated with a list of words
         [w1] or [w1, w2, w3...].
 

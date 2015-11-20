@@ -123,6 +123,7 @@
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
     <div class="non_inline">
+      <h4 id="references_title"></h4>
       <ol id="references">
       </ol>
     </div>
@@ -140,6 +141,7 @@
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
         viewer.loadColorMapFromURL('/colors'); 
+        displayIntensity('options=clear');
         viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
@@ -156,7 +158,7 @@
             var z = Math.round(pick_info.point.z);
             viewer.drawDot(x, y, z, 2, 0x3399CC);   // display the click 
 
-            // Clear UI
+            // Clear the screen of residual D3, refs, intensity maps 
             clearScreen();
 
             // Show header
@@ -164,9 +166,10 @@
             displayHeader(searchType="Location", searchParameter=xyz);     
 
             // Get the JSON for D3 and initialize it 
-            var d3Url = "/d3_by_location.json?xcoord=" + String(x) + 
+            var d3Url = "d3.json?xcoord=" + String(x) + 
                       "&ycoord=" + String(y) + 
-                      "&zcoord=" + String(z);
+                      "&zcoord=" + String(z) +
+                      "&options=location";
             $.get(d3Url, initializeD3);
 
             // Get the references and display them
@@ -227,10 +230,16 @@
 
     // }
 
+    // function getJSONforD3(url) {
+    //   var d3Url = '/d3.json?' + url;
+    //   $.get(d3Url, initializeD3);
+    // }
+
     function clearScreen() {
       d3.select("svg").remove();
       displayIntensity('options=clear');  
       $('li').remove(); 
+      $('#references_title').html('');
     }
 
 
@@ -241,6 +250,8 @@
 
 
     function displayRefs(url) {
+
+      $("#references_title").html("References");
 
       var referencesUrl = '/citations.json?' + url;
       $.get(referencesUrl, function (results) {
@@ -258,7 +269,7 @@
           var btn = document.createElement("button");
           btn.setAttribute("id", key);
           btn.setAttribute("class", "citation");
-          btn.innerHTML="See related activation";
+          btn.innerHTML="Tell me about studies like this";
           li.appendChild(btn);
 
         };
@@ -269,8 +280,7 @@
 
     }
 
-
-    // When the user clicks on a word (word=true) or cluster (word=false), project an 
+    // When the user clicks on a word or topic, project an 
     // intensity map onto the brain reflecting activation associated with it
     function displayIntensity(url) {
 
@@ -278,36 +288,54 @@
       var intensityUrl = '/intensity?' + url;
       viewer.loadIntensityDataFromURL(intensityUrl, {
         min:0, 
-        max:1.0,
+        max:0.25,
       });
 
     }
 
+    function getClusterChildren(cluster_id) {
 
-    // When the user submits a form
-    // containing x-y-z coordinates, get the words 
-    // associated with that location and feed them into D3 
-    function getLocationInfoForD3() {
-      // d3.select("#d3_here").selectAll("svg").remove();
-      var xVal = $("#xcoord");
-      var yVal = $("#ycoord");
-      var zVal = $("#zcoord");
-      $('#header').html('Location: ' 
-        + x + ' ' 
-        + y + ' ' 
-        + z)
-      var url = "/d3_by_location.json?" + $("#xyz_coord").serialize();
+      url = '/d3topic.json?cluster_id=' + cluster_id;
       $.get(url, initializeD3);
 
     }
 
+    // When the user submits a form
+    // containing x-y-z coordinates, get the words 
+    // associated with that location and feed them into D3 
+    // function getLocationInfoForD3() {
+    //   // d3.select("#d3_here").selectAll("svg").remove();
+    //   var xVal = $("#xcoord");
+    //   var yVal = $("#ycoord");
+    //   var zVal = $("#zcoord");
+
+    //   var url = "/d3_by_location.json?" + $("#xyz_coord").serialize();
+    //   $.get(url, initializeD3);
+
+    // }
 
 
     // Event handlers to generate intensity or D3 when user manually submits
     // a word or a coordinate, or clicks on a reference
 
     // Location --> d3 + references 
-    $('#submit-xyz').on('click', getLocationInfoForD3); 
+
+    $("#submit-xyz").on("click", function(evt) {
+
+      clearScreen();
+
+      var x = String($("#xcoord").val());
+      var y = String($("#ycoord").val());
+      var z = String($("#zcoord").val());
+      msg = x + " " + y + " " + z;
+      displayHeader(searchType="Location", searchParameter=msg);
+      viewer.drawDot(x, y, z, 2, 0x3399CC)
+
+      var url = "xcoord=" + x + "&ycoord=" + y + "&zcoord=" + z + "&options=location";
+      $.get('/d3.json?' + url, initializeD3);
+      displayRefs(url)
+
+    }); 
 
 
     // Word --> intensity + references 
@@ -324,26 +352,25 @@
 
     });
     
-
     // References --> intensity + D3  
-  function clickReference() {
+    function clickReference() {
 
-    $('.citation').on('click', function(evt) {
+      $('.citation').on('click', function(evt) {
 
-      console.log("User clicked on a reference.");
-      clearScreen();
-      displayHeader(searchType="Study", searchParameter=this.id);
+        console.log("User clicked on a reference.");
+        clearScreen();
+        displayHeader(searchType="Study", searchParameter=this.id);
 
-      var url = 'pmid=' + this.id + '&options=study';
+        var url = 'pmid=' + this.id + '&options=study';
 
-      displayIntensity(url);
+        displayIntensity(url);
 
-      var d3Url = "/d3_by_refs.json?pmid=" + this.id;
-      $.get(d3Url, initializeD3);
+        var d3Url = "/d3.json?pmid=" + this.id + "&options=study";
+        $.get(d3Url, initializeD3);
 
-    });
+      });
 
-  }
+    }
 
 
     // D3 JAVASCRIPT HERE //////////////////////////////////////////////////////
@@ -352,6 +379,7 @@
 
     function initializeD3(results) {   
         console.log("Initializing D3.");
+        console.log(results)
 
         var width = 600,
             height = 600,
@@ -436,8 +464,9 @@
           if (d.children) {  
             displayHeader(seachType="Topic #", searchParameter=d.name);
             var url = "cluster=" + d.name + "&options=cluster"; 
+            getClusterChildren(d.name);
           } else {
-            displayHeader(searchType="Word: ", searchParameter=d.name);
+            displayHeader(searchType="Word", searchParameter=d.name);
             var url = "word=" + d.name + "&options=word";
           }
 

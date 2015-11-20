@@ -26,25 +26,47 @@ def index():
 #  ROUTE FOR CREATING JSON FOR D3
 ################################################################################
 
+@app.route('/d3topic.json')
+def generate_topic_d3():
 
-@app.route('/d3_by_location.json')
-def generate_d3_from_xyz(radius=3, scale=70000):
-    """ Returns a jsonified dictionary with xyz at the root node.
+    cluster_id = request.args.get("cluster_id")
+
+    words = TermCluster.get_words_in_cluster(cluster_id)
+    root_dict = {'name': cluster_id, 'children': []}
+    for word in words:
+        root_dict['children'].append({'name': '', 'children': [{'name': word, 'size': 40000}]})
+
+    return jsonify(root_dict)
+
+
+@app.route('/d3.json')
+def generate_d3(radius=3):
+    """ Returns JSON with xyz at the root node.
 
     Test with parameters: 40, -45, -25    (Fusiform face area)
     """
 
-    print "Generating data for D3."
+    clicked_on = request.args.get("options")
 
-    x_coord = float(request.args.get("xcoord"))
-    y_coord = float(request.args.get("ycoord"))
-    z_coord = float(request.args.get("zcoord"))
-    # radius = int(request.args.get("radius"))
+    if clicked_on == 'location':
 
-    # Get all of the needed information from the db first:
-    # Get the studies citing activation at/near xyz
-    pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
-    # Get [(wd, freq), ...] and [wd1, wd2] for most frequent words
+        x_coord = float(request.args.get("xcoord"))
+        y_coord = float(request.args.get("ycoord"))
+        z_coord = float(request.args.get("zcoord"))
+
+        pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
+        root = "x: " + str(x_coord) + ", y: " + str(y_coord) + ", z:" + str(z_coord)
+        scale = 70000
+        # Get [(wd, freq), ...] and [wd1, wd2] for most frequent words
+
+    elif clicked_on == 'study':
+
+        pmid = request.args.get('pmid')
+        study = Study.get_study_by_pmid(pmid)
+        pmids = study.get_cluster_mates()
+        root = ''
+        scale = 30000
+
     terms_for_dict, words = StudyTerm.get_terms_by_pmid(pmids)
     # Optional: transform the terms
     # Get the top clusters
@@ -53,8 +75,7 @@ def generate_d3_from_xyz(radius=3, scale=70000):
     associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
 
     # Make the root node:
-    xyz_loc = "x: " + str(x_coord) + ", y: " + str(y_coord) + ", z:" + str(z_coord)
-    root_dict = {'name': xyz_loc, 'children': []}
+    root_dict = {'name': root, 'children': []}
 
     # Build the terminal nodes (leaves) first using (wd, freq) tuples
     # Output: {word: {'name': word, 'size': freq}, word2: ... }
@@ -81,45 +102,6 @@ def generate_d3_from_xyz(radius=3, scale=70000):
 
     return jsonify(root_dict)
 
-@app.route('/d3_by_refs.json')
-def generate_d3_from_ref(scale=70000):
-
-    print "Generating data for D3."
-    pmid = request.args.get("pmid")
-
-    study = Study.get_study_by_pmid(pmid)
-    cluster_mates = study.get_cluster_mates()
-    terms_for_dict, words = StudyTerm.get_terms_by_pmid(cluster_mates)
-    top_clusters = TermCluster.get_top_clusters(words)
-    associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
-
-    # Make the root node:
-    root_dict = {'name': '', 'children': []}
-
-    # Build the terminal nodes (leaves) first using (wd, freq) tuples
-    # Output: {word: {'name': word, 'size': freq}, word2: ... }
-    leaves = {}
-    for (word, freq) in terms_for_dict:
-        if word not in leaves:
-            leaves[word] = {'name': word, 'size': freq * scale}
-        else:
-            leaves[word]['size'] += freq * scale
-
-    # Embed the leaves in the clusters:
-    # Output: {cluster_id: {'name': ID, 'children': [...]}, ... }
-    clusters = {}
-    for (cluster_id, word) in associations:
-        if cluster_id not in clusters:
-            clusters[cluster_id] = {'name': cluster_id, 'children': [leaves[word]]}
-        else:
-            clusters[cluster_id]['children'].append(leaves[word])
-
-    # Put the clusters in the root dictionary
-    # Output: {'name': root, children: [{'name': id, 'children': []}, ...]
-    for cluster in top_clusters:
-        root_dict['children'].append(clusters[cluster])
-
-    return jsonify(root_dict)
 
 ################################################################################
 #  ROUTE FOR GENERATING CITATIONS
@@ -166,7 +148,9 @@ def generate_citations(radius=3):
 @app.route('/locations.json')
 def generate_locations():
     """Returns a list of locations [(x, y, z), (x, y, z) ...]
-    associated with some word."""
+    associated with some word.
+
+    DEPRECATED - NO LONGER IN USE"""
 
     word = request.args.get("word")
     loc_ids = {word: Location.get_xyzs_from_word(word)}
@@ -187,7 +171,7 @@ def generate_intensity():
     activations = None
 
     if clicked_on == 'clear':
-        for i in range (0, 81925):
+        for i in range(0, 81925):
             intensity_vals = intensity_vals + "0\n"
 
         return intensity_vals
@@ -195,7 +179,9 @@ def generate_intensity():
     elif clicked_on == 'cluster':
         cluster = request.args.get('cluster')
         word = TermCluster.get_words_in_cluster(cluster)
+        print "******* COMPLETED WORD CLUSTERS *********"
         activations = Activation.get_activations_from_word(word)
+        print "******* COMPLETED ACTIVATIONS *********"
 
     elif clicked_on == 'word':
         word = request.args.get('word')
@@ -216,13 +202,15 @@ def generate_intensity():
             else:
                 intensity_vals = intensity_vals + str(activations[i]) + "\n"
 
-        print "ACTIVATIONS:", activations
+    print "***** EVERYTHING COMPLETE *************"
     return intensity_vals
 
 
 @app.route('/intensitytest')
 def generate_example_intensity():
-    """Returns the intensity data provided by Brainbrowser."""
+    """Returns the sample intensity data provided by Brainbrowser.
+
+    Used for testing intensity mapping."""
 
     intensity_file = open('static/models/cortical-thickness.txt')
     intensity_data = ''.join(intensity_file.readlines())
