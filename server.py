@@ -30,11 +30,28 @@ def index():
 def generate_topic_d3():
 
     cluster_id = request.args.get("cluster_id")
-
     words = TermCluster.get_words_in_cluster(cluster_id)
-    root_dict = {'name': cluster_id, 'children': []}
+
+    root_dict = {'name': '', 'children': []}
+
     for word in words:
-        root_dict['children'].append({'name': '', 'children': [{'name': word, 'size': 40000}]})
+        root_dict['children'].append(
+            {'name': '', 'children': [{'name': word, 'size': 40000}]})
+
+    return jsonify(root_dict)
+
+
+@app.route('/d3word.json')
+def generate_word_d3():
+
+    word = request.args.get("word")
+    clusters = TermCluster.get_top_clusters(word, n=25)
+
+    root_dict = {'name': '', 'children': []}
+
+    for cluster in clusters:
+        root_dict['children'].append(
+            {'name': cluster, 'children': [{'name': word, 'size': 40000}]})
 
     return jsonify(root_dict)
 
@@ -55,7 +72,6 @@ def generate_d3(radius=3):
         z_coord = float(request.args.get("zcoord"))
 
         pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
-        root = "x: " + str(x_coord) + ", y: " + str(y_coord) + ", z:" + str(z_coord)
         scale = 70000
         # Get [(wd, freq), ...] and [wd1, wd2] for most frequent words
 
@@ -64,7 +80,6 @@ def generate_d3(radius=3):
         pmid = request.args.get('pmid')
         study = Study.get_study_by_pmid(pmid)
         pmids = study.get_cluster_mates()
-        root = ''
         scale = 30000
 
     terms_for_dict, words = StudyTerm.get_terms_by_pmid(pmids)
@@ -75,7 +90,7 @@ def generate_d3(radius=3):
     associations = TermCluster.get_word_cluster_pairs(top_clusters, words)
 
     # Make the root node:
-    root_dict = {'name': root, 'children': []}
+    root_dict = {'name': '', 'children': []}
 
     # Build the terminal nodes (leaves) first using (wd, freq) tuples
     # Output: {word: {'name': word, 'size': freq}, word2: ... }
@@ -145,16 +160,16 @@ def generate_citations(radius=3):
 ################################################################################
 
 
-@app.route('/locations.json')
-def generate_locations():
-    """Returns a list of locations [(x, y, z), (x, y, z) ...]
-    associated with some word.
+# @app.route('/locations.json')
+# def generate_locations():
+#     """Returns a list of locations [(x, y, z), (x, y, z) ...]
+#     associated with some word.
 
-    DEPRECATED - NO LONGER IN USE"""
+#     DEPRECATED - NO LONGER IN USE"""
 
-    word = request.args.get("word")
-    loc_ids = {word: Location.get_xyzs_from_word(word)}
-    return jsonify(loc_ids)
+#     word = request.args.get("word")
+#     loc_ids = {word: Location.get_xyzs_from_word(word)}
+#     return jsonify(loc_ids)
 
 
 @app.route('/intensity')

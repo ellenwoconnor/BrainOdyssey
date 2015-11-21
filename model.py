@@ -455,7 +455,7 @@ class TermCluster(db.Model):
 
     @classmethod
     def get_top_clusters(cls, terms, n=12):
-        """Returns the 15 'most relevant' topic clusters given some
+        """Returns the 'most relevant' topic clusters given a word or
         list of words by maximizing the # of words per cluster.
 
             >>> TermCluster.get_top_clusters([u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer'])
@@ -464,11 +464,16 @@ class TermCluster(db.Model):
 
         """
 
-        print "Getting the top clusters associated with terms such as", terms[0:25]
+        print "Getting the top clusters associated with ", terms[0:25]
 
-        clusters = db.session.query(cls.cluster_id).filter(
-            cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
-            func.count(cls.word))).limit(n).all()
+        if isinstance(terms, list):
+            clusters = db.session.query(cls.cluster_id).filter(
+                cls.word.in_(terms)).group_by(cls.cluster_id).order_by(desc(
+                func.count(cls.word))).limit(n).all()
+
+        else:
+            clusters = db.session.query(cls.cluster_id).filter(
+                cls.word == terms).limit(n).all()
 
         return [cluster[0] for cluster in clusters]
 
@@ -483,13 +488,16 @@ class TermCluster(db.Model):
             Getting the associations with clusters [133]
             [(133, u'disease')]
 
-        """
+        Used to get word-cluster associations for D3, with respect to a set of words
+        associated with a location, and a set of 'most talked about' clusters."""
+
         print "Getting the associations with clusters", clusters
 
         associations = db.session.query(cls.cluster_id, cls.word).filter(
             cls.cluster_id.in_(clusters), cls.word.in_(words)).all()
 
         return associations
+
 
     ### Get all words associated with a particular cluster #####################
 
@@ -508,6 +516,7 @@ class TermCluster(db.Model):
 # CLUSTER TABLE
 ###########################################################################
 
+
 class Cluster(db.Model):
     """A topic cluster, identified by an integer from 0-400."""
 
@@ -519,6 +528,7 @@ class Cluster(db.Model):
         """Displays info about a cluster."""
 
         return "<Cluster id=%s>" % (self.id)
+
 
     ### Check if cluster in db ########################################
 

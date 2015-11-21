@@ -36,6 +36,7 @@
       font: 10px sans-serif;
       pointer-events: none;
       text-anchor: middle;
+      fill: black;
     }
 
     line.link {
@@ -84,9 +85,7 @@
 
   </style>
 
-  <script>BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")</script>
 </head>
-
 
 <body>
 
@@ -131,9 +130,10 @@
 
     <script>
 
-    // BRAINBROWSER FUNCTIONS HERE /////////////////////////////////////////////
+    // MAIN BRAINBROWSER FUNCTION  /////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+    BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")
     
     function render_brainbrowser() {
       window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
@@ -188,6 +188,7 @@
     // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+
     function clearScreen() {
       d3.select("svg").remove();
       displayIntensity('options=clear');  
@@ -200,7 +201,7 @@
       var msg = searchType + ": " + searchParameter;
       $('#header').html(msg);
     }
-
+    
 
     function displayRefs(url) {
 
@@ -248,7 +249,7 @@
     }
 
 
-    function getClusterChildren(cluster_id) {
+    function getClusterD3(cluster_id) {
 
       url = '/d3topic.json?cluster_id=' + cluster_id;
       $.get(url, initializeD3);
@@ -256,34 +257,36 @@
     }
 
     // Event handlers to generate intensity or D3 when user manually submits
-    // a word or a coordinate, or clicks on a reference
+    // a word or a coordinate or clicks on a reference
 
     // Location --> d3 + references 
 
     $("#submit-xyz").on("click", function(evt) {
 
-      var x = String($("#xcoord").val());
-      var y = String($("#ycoord").val());
-      var z = String($("#zcoord").val());
+      var x = $("#xcoord").val();
+      var y = $("#ycoord").val();
+      var z = $("#zcoord").val();
 
       // Form validation 
-      if (isNaN(x) == false || isNaN(y) == false || isNaN(z) == false ||
-        x > 100 || x < -100 || y > 100 || y < -100 || z > 100 || z < -100) {
+      if (isNaN(x) == true || isNaN(y) == true || isNaN(z) == true ||
+          x > 100 || x < -100 || y > 100 || y < -100 || z > 100 || z < -100) {
         alert("Please enter coordinates between -100 and 100.");
-        return false;
+        return;
       }
 
+      // Prepare the screen for new information
       clearScreen();
-      msg = x + " " + y + " " + z;
+      msg = String(x) + " " + String(y) + " " + String(z);
       displayHeader(searchType="Location", searchParameter=msg);
       viewer.drawDot(x, y, z, 2, 0x3399CC)
 
-      var url = "xcoord=" + x + 
-                "&ycoord=" + y + 
-                "&zcoord=" + z + 
+      // Get the references & d3 
+      var url = "xcoord=" + String(x) + 
+                "&ycoord=" + String(y) + 
+                "&zcoord=" + String(z) + 
                 "&options=location";
       $.get('/d3.json?' + url, initializeD3);
-      displayRefs(url)
+      displayRefs(url);
 
     }); 
 
@@ -302,6 +305,7 @@
 
     });
     
+
     // References --> intensity + D3  
     function clickReference() {
 
@@ -323,13 +327,11 @@
     }
 
 
-    // D3 JAVASCRIPT HERE //////////////////////////////////////////////////////
+    // MAIN D3 FUNCTION //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     
 
     function initializeD3(results) {   
-        console.log("Initializing D3.");
-        console.log(results)
 
         var width = 600,
             height = 600,
@@ -381,10 +383,10 @@
               .call(force.drag);
 
           nodeEnter.append("circle")
-              .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 4.5; });
+              .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 8; });
 
           nodeEnter.append("text")
-              .attr("dy", ".35em")
+              .attr("dy", ".4em")
               .text(function(d) { return d.name; });
               // Can I access d.name if I want to use the name to query my db? 
 
@@ -401,24 +403,28 @@
           node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
         }
 
-        function color(d) {
-          return d._children ? "#3182bd" // collapsed package
+        function color(d) {   // node colors 
+          return  d._children ? "#3182bd" //  collapsed package (no longer in use)
               : d.children ? "#c6dbef" // expanded package
               : "#fd8d3c"; // leaf node
         }
 
-        // Event handlers to deal with clicks on children: 
+        // Event handler to deal with node clicks: 
         function click(d) {
 
           if (d3.event.defaultPrevented) return; // ignore drag
+
           if (d.children) {  
             if (d.name === '') { return }; // ignore placeholder nodes w/ no name
             displayHeader(seachType="Topic #", searchParameter=d.name);
             var url = "cluster=" + d.name + "&options=cluster"; 
-            getClusterChildren(d.name);
-          } else {
+            $.get('/d3topic.json?cluster=' + d.name, initializeD3);
+          } 
+
+          else {
             displayHeader(searchType="Word", searchParameter=d.name);
             var url = "word=" + d.name + "&options=word";
+            $.get('/d3word.json?word=' + d.name, initializeD3)
           }
 
           clearScreen();
