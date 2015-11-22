@@ -49,11 +49,13 @@
     #brainbrowser_here {
       height:700px;
       width:700px;
+      float:left;
     }
 
     #d3_here {
       height:700px;
       width:700px;
+      float:left;
     }
 
     #title {
@@ -61,12 +63,12 @@
       text-align: center;
     }
 
-    .inline_box {
+/*    .inline_box {
       float:left;
     }
-
-    #references {
-      clear:left;
+*/
+    #references_div {
+      clear:both;
       border: 2px solid black;
     }
 
@@ -121,7 +123,7 @@
     <h4 id="header"></h4>
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
-    <div class="references">
+    <div class="references_div">
       <h4 id="references_title"></h4>
       <ol id="references">
       </ol>
@@ -319,6 +321,7 @@
         var url = 'pmid=' + this.id + '&options=study';
 
         displayIntensity(url);
+        displayRefs(url)
 
         var d3Url = "/d3.json?pmid=" + this.id + "&options=study";
         $.get(d3Url, initializeD3);

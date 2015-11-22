@@ -150,9 +150,13 @@ def generate_citations(radius=3):
         words = TermCluster.get_words_in_cluster(cluster)
         pmids = StudyTerm.get_pmid_by_term(words)
 
-    # elif clicked_on == 'study':
+    elif clicked_on == 'study':
 
-    #     pmid = request.args.get('study')
+        pmid = request.args.get('pmid')
+        study = Study.get_study_by_pmid(pmid)
+
+        # Look for cluster-mate studies
+        pmids = study.get_cluster_mates()
 
 
     citations = Study.get_references(pmids)
@@ -236,7 +240,10 @@ def generate_intensity():
         # Scale study counts in preparation for intensity mapping
         intensities_by_location = scale_study_counts(activations)
 
+
+    print "INTENSITIES PROVIDED: ", intensities_by_location
     intensity_vals = generate_intensity_map(intensities_by_location)
+
     return intensity_vals
 
 
@@ -348,9 +355,9 @@ def scale_study_counts(activations):
         location_id, count = activation
 
         if location_id not in intensities_by_location:
-            intensities_by_location[location_id] = count/max_count
+            intensities_by_location[location_id] = float(count)/float(max_count)
         else:
-            intensities_by_location[location_id] += count/max_count
+            intensities_by_location[location_id] += float(count)/float(max_count)
 
     return intensities_by_location
 
