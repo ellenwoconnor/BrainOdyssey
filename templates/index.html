@@ -26,34 +26,34 @@
 
   <style>
 
+
     .node circle {
       cursor: pointer;
       stroke: #3182bd;
-      stroke-width: 1.5px;
+      stroke-width: 1.5px;;
     }
 
     .node text {
       font: 10px sans-serif;
       pointer-events: none;
       text-anchor: middle;
-      fill: black;
     }
 
     line.link {
       fill: none;
-      stroke: #9ecae1; 
+      stroke: #3182bd;  
       stroke-width: 1.5px;
 
     }
 
     #brainbrowser_here {
-      height:600px;
-      width:600px;
+      height:700px;
+      width:700px;
     }
 
     #d3_here {
-      height:600px;
-      width:600px;
+      height:700px;
+      width:700px;
     }
 
     #title {
@@ -65,13 +65,13 @@
       float:left;
     }
 
-    .non-inline {
+    #references {
       clear:left;
+      border: 2px solid black;
     }
 
     body {
       background-color:white;
-      color:black;
     }
 
     h3 {
@@ -96,7 +96,7 @@
     </div>
 
     <div class="non_inline">
-      <form id="xyz_coord">Shift+click on the brain or enter coordinates manually here:<br>
+      <form id="xyz_coord">Shift+click on the brain or enter coordinates manually here:
           <label for="xcoord">X:
               <input type="text" name="xcoord" id="xcoord">
           </label>
@@ -121,7 +121,7 @@
     <h4 id="header"></h4>
     <div id="brainbrowser_here" class="inline_box"></div>
     <div id="d3_here" class="inline_box"></div>
-    <div class="non_inline">
+    <div class="references">
       <h4 id="references_title"></h4>
       <ol id="references">
       </ol>
@@ -140,8 +140,7 @@
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
-        viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj
-
+        viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj 
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
 
@@ -299,6 +298,8 @@
       var word = $('#word_search').val();
       displayHeader(searchType="Word", searchParameter=word);
 
+      $.get('/d3word.json?word=' + word, initializeD3)
+
       var url = "word=" + word + "&options=word";
       displayIntensity(url);
       displayRefs(url);
@@ -333,14 +334,14 @@
 
     function initializeD3(results) {   
 
-        var width = 600,
-            height = 600,
+        var width = 700,
+            height = 700,
             root; 
 
         var force = d3.layout.force()
             .linkDistance(20)
             .charge(-300)
-            .gravity(.10)
+            .gravity(.20)
             .size([width, height])
             .on("tick", tick);
 
@@ -388,7 +389,6 @@
           nodeEnter.append("text")
               .attr("dy", ".4em")
               .text(function(d) { return d.name; });
-              // Can I access d.name if I want to use the name to query my db? 
 
           node.select("circle")
               .style("fill", color);
@@ -405,8 +405,8 @@
 
         function color(d) {   // node colors 
           return  d._children ? "#3182bd" //  collapsed package (no longer in use)
-              : d.children ? "#c6dbef" // expanded package
-              : "#fd8d3c"; // leaf node
+              : d.children ? "#008080" // expanded package //
+              : "#ffae42"; // leaf node
         }
 
         // Event handler to deal with node clicks: 

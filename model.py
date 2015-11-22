@@ -4,7 +4,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, desc, Index
 from sqlalchemy.sql import label
-from operator import itemgetter
+
 
 
 db = SQLAlchemy()
@@ -48,9 +48,8 @@ class Location(db.Model):
     def __repr__(self):
         """Displays info about a location."""
 
-        return "<Location id=%d x=%d y=%d z=%d label=%s space=%s>" % (
-            self.location_id, self.x_coord, self.y_coord,
-            self.z_coord, self.label, self.space)
+        return "<Location id=%d x=%d y=%d z=%d>" % (
+            self.location_id, self.x_coord, self.y_coord, self.z_coord)
 
 
 ### Retrieve xyz from db ######################################################
@@ -59,6 +58,12 @@ class Location(db.Model):
     def check_by_xyz(cls, x=None, y=None, z=None):
         """Returns existing xyz instance of the class (None if no such
         instance exists).
+
+            >>> Location.check_by_xyz(4, -68, 6)
+            <Location id=80039 x=4 y=-68 z=6>
+
+            >>> Location.check_by_xyz(4, -68, 200) == None
+            True
 
         Used in database seeding"""
 
@@ -108,7 +113,7 @@ class Activation(db.Model):
         """Displays info about an activation."""
 
         return "<Activation pmid=%d location_id=%s>" % (self.pmid,
-                                                       self.location_id)
+                                                        self.location_id)
 
 ### Get studies reporting location ############################################
 
@@ -161,83 +166,41 @@ class Activation(db.Model):
         return pmids
 
 
-### Look up location ids associated with a word or list of words #############
-
-    @classmethod
-    def get_activations_from_word(cls, word):
-        """Returns a dictionary of {location IDs : intensities},
-         associated with one or more words.
-
-
-        Intensities are scaled using the maximum frequency returned"""
-
-        if isinstance(word, list):  # If we received a list of words as an arg:
-            activations = db.session.query(
-                cls.location_id, func.sum(StudyTerm.frequency)).join(
-                Study).join(StudyTerm).filter(
-                StudyTerm.word.in_(word), cls.location_id < 81925).group_by(
-                cls.location_id).all()
-
-        else:   # If we received a single word as an argument:
-            activations = db.session.query(
-                cls.location_id, func.sum(StudyTerm.frequency)).join(
-                Study).join(StudyTerm).filter(
-                StudyTerm.word == word, cls.location_id < 81925).group_by(
-                cls.location_id).all()
-
-
-        max_freq = max(activations, key=itemgetter(1))[1]
-
-        location_ids = {}
-
-        for activation in activations:
-            location_ids[activation[0]] = activation[1]/max_freq
-
-        return location_ids
-
-
 ### Look up location ids associated with a list of studies ##################
 
     @classmethod
-    def get_activations_from_studies(cls, studies, pmid):
-        """Returns a dictionary of {locations : intensities} associated with a series
-        of studies.
+    def get_activations_from_studies(cls, studies):
+        """Returns activations from a specified set of studies, reporting
+        activation on the brain surface.
 
-        Intensity is defined by whether the study PMID matches the one selected
-        by the user.
+            >>> Activation.get_activations_from_studies([25619848])
+            [<Activation pmid=25619848 location_id=1459>, <Activation pmid=25619848 location_id=81891>]
 
-        TO DO: add some of this to server.py"""
+        Used to generate intensity maps when user clicks on a reference.
+        """
 
-        activations = db.session.query(cls.location_id, cls.pmid).filter(
+        activations = cls.query.filter(
             cls.pmid.in_(studies), cls.location_id < 81925).all()
 
-        location_ids = {}
+        return activations
 
-        for activation in activations:
 
-            # Scale the intensity according to (a) whether the study is the one
-            # the user originally clicked on, and (b) how many times that location
-            # was reported as active.
+    @classmethod
+    def get_location_count_from_studies(cls, studies):
+        """Returns activations from a specified set of studies, reporting
+        activation on the brain surface.
 
-            if activation[0] not in location_ids:
-                if activation[1] == pmid:
-                    location_ids[activation[0]] = 1
-                else:
-                    location_ids[activation[0]] = .5
+            >>> Activation.get_activations_from_studies([25619848])
+            [<Activation pmid=25619848 location_id=1459>, <Activation pmid=25619848 location_id=81891>]
 
-            else:
-                if activation[1] == pmid:
-                    location_ids[activation[0]] += 1
-                else:
-                    location_ids[activation[0]] += .5
+        Used to generate intensity maps when user clicks on a reference.
+        """
 
-        max_freq = max(location_ids.values())
+        activations = db.session.query(cls.location_id, func.count(cls.pmid
+            )).filter(cls.pmid.in_(studies), cls.location_id < 81925
+            ).group_by(cls.pmid).all()
 
-        for location in location_ids:
-            location_ids[location] / max_freq
-
-        return location_ids
-
+        return activations
 
 ###########################################################################
 # STUDY TABLE
@@ -273,7 +236,11 @@ class Study(db.Model):
     @classmethod
     def get_references(cls, pmids):
         """Returns a list of references associated with specified PubMed IDs.
-        """
+
+            >>> Study.get_references([15737663])
+            {15737663: u'Li CS, Kosten TR, Sinha R. (2005). Sex differences in brain activation during stress imagery in abstinent cocaine users: a functional magnetic resonance imaging study. Biological psychiatry.'}
+        
+        Used to display reference list."""
 
         references = cls.query.filter(cls.pmid.in_(pmids)).all()
         citations = {}
@@ -288,6 +255,13 @@ class Study(db.Model):
 
     def get_cluster_mates(self):
         """Returns the other studies in a study cluster.
+
+            >>> study = Study.get_study_by_pmid(15737663)
+            Found study  15737663
+            >>> study.get_cluster_mates()
+            Getting all cluster mates associated with cluster  62
+            [14625150, 15737663, 16284946, 17032778, 17428684, 17686466, 17873968, 19403118, 19555674, 19596123, 19632211, 19641623, 19675245, 19720989, 19846063, 20004250, 20139149, 20621656, 20692349, 20861377, 21126593, 21211567, 21246665, 21498384, 21609968, 21664280, 21705195, 21783177, 22079927, 22291028, 22418012, 22442069, 22504779, 22674267, 22875937, 22929607, 23125822, 23401511, 23587493, 23730277, 23776438, 23840493, 23967320, 24316200, 24352030, 24478326, 24553284, 24760847, 25554429]
+        
         """
 
         print "Getting all cluster mates associated with cluster ", self.study_cluster
@@ -383,7 +357,20 @@ class StudyTerm(db.Model):
 
         return [pmid[0] for pmid in pmids]
 
+    @classmethod
+    def get_by_word(cls, word, limit=1000):
+        """Returns db rows where the study mentions some desired word(s)
+        at or above a given frequency threshold."""
 
+        if isinstance(word, list):
+            pmidfreqs = cls.query.filter(
+                cls.word.in_(word)).order_by(desc(cls.frequency)).limit(limit).all()
+
+        else:
+            pmidfreqs = cls.query.filter(
+                cls.word == word).order_by(desc(cls.frequency)).limit(limit).all()
+
+        return pmidfreqs
 
 
 ###########################################################################

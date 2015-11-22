@@ -1,9 +1,9 @@
 """Brain Odyssey server"""
 
 from jinja2 import StrictUndefined
-from model import Location,  Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
+from model import Location, Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
 from flask import Flask, render_template, jsonify, request
-
+from operator import itemgetter
 
 app = Flask(__name__)
 
@@ -29,7 +29,7 @@ def index():
 @app.route('/d3topic.json')
 def generate_topic_d3():
 
-    cluster_id = request.args.get("cluster_id")
+    cluster_id = request.args.get("cluster")
     words = TermCluster.get_words_in_cluster(cluster_id)
 
     root_dict = {'name': '', 'children': []}
@@ -130,9 +130,9 @@ def generate_citations(radius=3):
     clicked_on = request.args.get("options")
 
     if clicked_on == 'location':
-        x_coord = float(request.args.get("xcoord"))
-        y_coord = float(request.args.get("ycoord"))
-        z_coord = float(request.args.get("zcoord"))
+        x_coord = float(request.args.get('xcoord'))
+        y_coord = float(request.args.get('ycoord'))
+        z_coord = float(request.args.get('zcoord'))
 
         pmids = Activation.get_pmids_from_xyz(x_coord, y_coord, z_coord, radius)
 
@@ -150,6 +150,11 @@ def generate_citations(radius=3):
         words = TermCluster.get_words_in_cluster(cluster)
         pmids = StudyTerm.get_pmid_by_term(words)
 
+    # elif clicked_on == 'study':
+
+    #     pmid = request.args.get('study')
+
+
     citations = Study.get_references(pmids)
 
     return jsonify(citations)
@@ -165,7 +170,7 @@ def generate_citations(radius=3):
 #     """Returns a list of locations [(x, y, z), (x, y, z) ...]
 #     associated with some word.
 
-#     DEPRECATED - NO LONGER IN USE"""
+#     NO LONGER IN USE"""
 
 #     word = request.args.get("word")
 #     loc_ids = {word: Location.get_xyzs_from_word(word)}
@@ -182,41 +187,56 @@ def generate_intensity():
     Study: intensity mapping associated with a study cluster"""
 
     clicked_on = request.args.get("options")
-    intensity_vals = ""
-    activations = None
 
     if clicked_on == 'clear':
-        for i in range(0, 81925):
-            intensity_vals = intensity_vals + "0\n"
+
+        intensities_by_location = {}
+
+    elif clicked_on == 'cluster' or clicked_on == 'word':
+
+        if clicked_on == 'cluster':
+
+            cluster = request.args.get('cluster')
+            word = TermCluster.get_words_in_cluster(cluster)
+
+        else:
+
+            word = request.args.get('word')
+
+        studies = StudyTerm.get_by_word(word)
+
+        # Create a dictionary of {pmid: frequency} values
+        frequencies_by_pmid, max_intensity = organize_frequencies_by_study(studies)
+        pmids = frequencies_by_pmid.keys()
+
+        # Get the activations for the keys of the dictionary
+        activations = Activation.get_activations_from_studies(pmids)
+
+        # Assemble the final dictionary of {location:intensity} values, scaling
+        # each value as we go
+        intensities_by_location = scale_frequencies_by_loc(
+            activations, max_intensity, frequencies_by_pmid)
+
+        # Then assemble the intensity map
+        intensity_vals = generate_intensity_map(intensities_by_location)
 
         return intensity_vals
 
-    elif clicked_on == 'cluster':
-        cluster = request.args.get('cluster')
-        word = TermCluster.get_words_in_cluster(cluster)
-        activations = Activation.get_activations_from_word(word)
-
-    elif clicked_on == 'word':
-        word = request.args.get('word')
-        activations = Activation.get_activations_from_word(word)
-
     elif clicked_on == 'study':
+
         pmid = request.args.get('pmid')
         study = Study.get_study_by_pmid(pmid)
+
+        # Look for cluster-mate studies
         cluster_mates = study.get_cluster_mates()
-        activations = Activation.get_activations_from_studies(cluster_mates, pmid)
 
-    # For each Brainbrowser index i, if there was no activation, add 0 to the string
-    # If there was activation, add its frequency value.
-    if activations:
-        for i in range(0, 81925):
-            if i not in activations:
-                intensity_vals = intensity_vals + "0\n"
-            else:
-                intensity_vals = intensity_vals + str(activations[i]) + "\n"
-    else:
-        intensity_vals = None
+        # Get (location, study count) tuples from db
+        activations = Activation.get_location_count_from_studies(cluster_mates)
 
+        # Scale study counts in preparation for intensity mapping
+        intensities_by_location = scale_study_counts(activations)
+
+    intensity_vals = generate_intensity_map(intensities_by_location)
     return intensity_vals
 
 
@@ -247,6 +267,92 @@ def generate_color_map():
 ################################################################################
 # Helper functions
 ################################################################################
+
+
+def organize_frequencies_by_study(studies):
+    """Returns a dictionary of {PubMed ID : word frequency} values, given
+    some raw data from StudyTerm table.
+
+    Used as an intermediate lookup when building intensity map, in lieu of 
+    performing a complex join query."""
+
+    frequencies_by_pmid = {}
+
+    # Add the {study : frequency} values to dictionary, summing by PubMed ID
+    for study in studies:
+        if study.pmid not in frequencies_by_pmid:
+            frequencies_by_pmid[study.pmid] = study.frequency
+    else:
+        frequencies_by_pmid[study.pmid] += study.frequency
+
+    # Get the maximal frequency for scaling
+    max_intensity = max(frequencies_by_pmid.values())
+
+    return frequencies_by_pmid, max_intensity
+
+
+def scale_frequencies_by_loc(activations, max_intensity, frequencies_by_pmid):
+    """Returns a dictionary of {location_id : scaled intensity} values.
+
+    Intensity values are derived from word frequency metrics and scale using
+    the maximal values.
+
+    TO DO: Generate normalized intensities"""
+
+    intensities_by_location = {}
+
+    for activation in activations:
+        intensity_to_add = frequencies_by_pmid[activation.pmid]
+
+        if activation.location_id not in intensities_by_location:
+            intensities_by_location[activation.location_id] = (
+                intensity_to_add / max_intensity)
+        else:
+            intensities_by_location[activation.location_id] += (
+                intensity_to_add / max_intensity)
+
+    return intensities_by_location
+
+
+def generate_intensity_map(intensities_by_location):
+    """Returns a string with intensity values for each of 81925 surface 
+    locations."""
+
+    intensity_vals = ""
+
+    for i in range(0, 81925):
+
+        if i not in intensities_by_location:
+
+            intensity_vals = intensity_vals + "0\n"
+        else:
+            intensity_vals = intensity_vals + str(intensities_by_location[i]) + "\n"
+
+    return intensity_vals
+
+
+def scale_study_counts(activations):
+    """Returns a dictionary of {location_id : scaled intensity} values.
+
+    Intensity values are derived from study counts and scaled using the
+    maximal counts.
+
+    TO DO: Generate normalized intensities."""
+
+    max_count = max(activations, key=itemgetter(1))[1]
+
+    intensities_by_location = {}
+
+    for activation in activations:
+
+        location_id, count = activation
+
+        if location_id not in intensities_by_location:
+            intensities_by_location[location_id] = count/max_count
+        else:
+            intensities_by_location[location_id] += count/max_count
+
+    return intensities_by_location
 
 
 if __name__ == "__main__":
