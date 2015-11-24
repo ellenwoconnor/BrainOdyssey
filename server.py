@@ -4,6 +4,7 @@ from jinja2 import StrictUndefined
 from model import Location, Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
 from flask import Flask, render_template, jsonify, request
 from operator import itemgetter
+import numpy as np #Can I import only std and mean functions? 
 
 app = Flask(__name__)
 
@@ -12,7 +13,7 @@ app.jinja_env.undefined = StrictUndefined
 
 
 ################################################################################
-#  HOMEPAGE ROUTE
+#  HOMEPAGE ROUTES
 ################################################################################
 
 @app.route('/')
@@ -22,8 +23,17 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/words')
+def retrieve_words():
+    """Retrieves all available words in the db for autocomplete functionality."""
+
+    words = Term.get_all()
+
+    return jsonify({'words': words})
+
+
 ################################################################################
-#  ROUTE FOR CREATING JSON FOR D3
+#  ROUTE FOR D3 CREATION
 ################################################################################
 
 @app.route('/d3topic.json')
@@ -271,6 +281,7 @@ def generate_color_map():
     return color_data
 
 
+
 ################################################################################
 # Helper functions
 ################################################################################
@@ -345,6 +356,30 @@ def scale_study_counts(activations):
     maximal counts.
 
     TO DO: Generate normalized intensities."""
+
+    # counts = [activation[1] for activation in activations]
+
+    # center = np.mean(np.array(counts)) - 3      # Center the distribution on 3
+    # std_count = np.std(np.array(counts))        # Normalize by division by sd 
+
+    # intensities_by_location = {}
+
+    # for activation in activations:
+
+    #     location_id, count = activation
+
+    #     if std_count == 0:      # std dev is 0, so all values are at mean
+    #         intensities_by_location[location_id] = 3
+
+    #     else:
+    #         if location_id not in intensities_by_location:
+    #             intensities_by_location[location_id] = (
+    #                 float(count)-float(center))/float(std_count)
+    #         else:
+    #             intensities_by_location[location_id] += (
+    #                 float(count)-float(center))/float(std_count)
+
+    # return intensities_by_location
 
     max_count = max(activations, key=itemgetter(1))[1]
 

@@ -187,8 +187,8 @@ class Activation(db.Model):
 
     @classmethod
     def get_location_count_from_studies(cls, studies):
-        """Returns activations from a specified set of studies, reporting
-        activation on the brain surface.
+        """Returns activations (location_id, study count) from a provided
+        list of PubMed IDs, limited to surface locations only.
 
             >>> Activation.get_activations_from_studies([25619848])
             [<Activation pmid=25619848 location_id=1459>, <Activation pmid=25619848 location_id=81891>]
@@ -414,6 +414,12 @@ class Term(db.Model):
         else:
             return True
 
+    @classmethod
+    def get_all(cls):
+
+        words = db.session.query(Term.word).all()
+
+        return [word[0] for word in words]
 
 ###########################################################################
 # TERMCLUSTER TABLE

@@ -5,6 +5,7 @@
 <head>
   <title>Brain Odyssey</title>
 
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
   <script src="static/d3.js"></script>
   <script src="static/jquery.js"></script>
   <script src="static/brainbrowser/js/jquery-2.1.1.min.js"></script>
@@ -23,6 +24,11 @@
   <script src="static/brainbrowser/surface-viewer/modules/loading.js"></script>
   <script src="static/brainbrowser/surface-viewer/modules/rendering.js"></script>
   <script src="static/brainbrowser/surface-viewer/modules/views.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,300,700' rel='stylesheet' type='text/css'>
+  <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
+  <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
 
   <style>
 
@@ -41,39 +47,31 @@
 
     line.link {
       fill: none;
-      stroke: #3182bd;  
+      stroke: #9a9a9a;  
       stroke-width: 1.5px;
 
     }
 
     #brainbrowser_here {
-      height:700px;
-      width:700px;
-      float:left;
+      height: 500px;
+      width: 400px;
     }
 
     #d3_here {
-      height:700px;
-      width:700px;
       float:left;
+      height:500px;
+      width:400px;
     }
 
-    #title {
-      height:80px;
-      text-align: center;
-    }
-
-/*    .inline_box {
-      float:left;
-    }
-*/
-    #references_div {
-      clear:both;
-      border: 2px solid black;
+    #references {
+      height: 700px;
+      overflow-y:scroll;
     }
 
     body {
-      background-color:white;
+      background: white; 
+      font-family: Raleway, sans-serif;
+      font-weight:300;
     }
 
     h3 {
@@ -85,6 +83,36 @@
       text-align: center;
     }
 
+    h2 {
+      text-align: center;
+    }
+
+    .row {
+      margin: 10px;
+    }
+
+    .ui-widget {
+      font-family: Raleway, sans-serif;
+      font-weight:300;
+    }
+
+    .ui-widget button {
+      font-family: Raleway,sans-serif;
+      font-weight:300;
+    }
+
+    .panel > .panel-heading {
+      text-align: center;
+    }
+
+    .well {
+      height: 130px;
+    }
+
+/*    .form_inline {
+      height: 170px;
+    }*/
+
   </style>
 
 </head>
@@ -93,7 +121,91 @@
 
   <!--HTML BODY --> 
 
-    <div id="title">
+<div class="container-fluid">
+  <div class="row"> <!--main row--> 
+    
+    <div class= "col-lg-4">  <!-- Column 1-->
+
+      <div class="row"> <!-- D3-->
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div id="d3_here" class="inline_box"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row"> <!-- Form -->
+        <div class="panel panel-default">
+          <div class = "panel-body">
+            <form class = "form-inline" id="xyz_coord">
+                <label for="xcoord">X:
+                    <input type="text" name="xcoord" id="xcoord">
+                </label>
+                <label for="ycoord">Y:
+                    <input type="text" name="ycoord" id="ycoord">
+                </label>
+                <label for="zcoord">Z:
+                    <input type="text" name="zcoord" id="zcoord">
+                </label>
+                <button type="button" id="submit-xyz">Select these coordinates</button>
+                <br><br>
+            </form>
+            <div class="ui-widget">
+              <form class="form-inline" id="word_search_form">Enter a word here to search for activation patterns:<br>
+                <label for="word_search">
+                  <input type="text" name="word_search" id="word_search">
+                </label>
+                <button type="button" id="submit_word">Search</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div> <!--End form --> 
+
+
+      </div> <!-- end Column 1 --> 
+
+    
+    <div class= "col-lg-4"> <!-- Column 2-->
+
+      <div class="row"> <!-- Word-->
+        <div class="well">
+          <h2 id="header"></h2>
+        </div>
+      </div>
+
+      <div class="row"> <!-- Brainbrowser-->
+        <div class="panel panel-default">
+          <div class="panel-heading">Shift+click to explore the brain!
+          </div>
+          <div class="panel-body">
+            <div id="brainbrowser_here"></div>
+          </div> 
+        </div>
+      </div> <!-- end Brainbrowser--> 
+
+    </div> <!-- End column 2-->
+    
+    
+    <div class= "col-lg-4"> <!-- Column 3-->
+
+      <div class="row"> <!-- References-->
+        <div class="panel panel-default">
+        <div class="panel-body">
+          <div class="references_div">
+            <h4 id="references_title"></h4>
+              <ol id="references">
+              </ol>
+          </div>
+        </div>
+        </div>
+      </div> 
+    </div> <!-- End column 3-->
+    
+  </div> <!--End main row--> 
+</div> <!--End container--> 
+
+<!--     <div id="title">
       <h3>Brain Odyssey</h3>
     </div>
 
@@ -127,7 +239,8 @@
       <h4 id="references_title"></h4>
       <ol id="references">
       </ol>
-    </div>
+    </div> -->
+
 
 
     <script>
@@ -142,7 +255,8 @@
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
-        viewer.loadModelFromURL("static/models/brain-surface.obj");  // load MNIobj 
+        viewer.loadModelFromURL('static/models/brain-surface.obj');  // load MNIobj 
+
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
 
@@ -184,7 +298,19 @@
       });
     }
 
+    // DEFAULT FUNCTIONS /////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+
     render_brainbrowser()
+
+    $("#header").html("Brain Odyssey")
+
+    // Get the words for autocomplete
+    $.get('/words', function(results) {
+      var words = results['words'];
+      console.log(words)
+      $("#word_search").autocomplete({source: words});
+    });
 
     // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
@@ -199,7 +325,7 @@
 
 
     function displayHeader(searchType, searchParameter) {
-      var msg = searchType + ": " + searchParameter;
+      var msg = searchType + ":<br> " + searchParameter;
       $('#header').html(msg);
     }
     
@@ -244,7 +370,7 @@
       var intensityUrl = '/intensity?' + url;
       viewer.loadIntensityDataFromURL(intensityUrl, {
         min:0, 
-        max:0.25,
+        max:.5,
       });
 
     }
@@ -337,8 +463,8 @@
 
     function initializeD3(results) {   
 
-        var width = 700,
-            height = 700,
+        var width = 500,
+            height = 500,
             root; 
 
         var force = d3.layout.force()
@@ -356,6 +482,7 @@
             node = svg.selectAll(".node");
 
         var root = results;
+
         update();
 
         function update() {
@@ -390,7 +517,7 @@
               .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 8; });
 
           nodeEnter.append("text")
-              .attr("dy", ".4em")
+              .attr("dy", ".2em")
               .text(function(d) { return d.name; });
 
           node.select("circle")
@@ -452,7 +579,7 @@
         }
     } 
 
-  // D3 SCRIPT END  --------------------------------------------
+  // D3 SCRIPT END  ///////////////////////////////////////////////////////////
 
 
 </script>
