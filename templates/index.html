@@ -6,6 +6,9 @@
   <title>Brain Odyssey</title>
 
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,300,700|Josefin+Sans:400,600,700,600italic' rel='stylesheet' type='text/css'>
+  <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,400italic' rel='stylesheet' type='text/css'>
   <script src="static/d3.js"></script>
   <script src="static/jquery.js"></script>
   <script src="static/brainbrowser/js/jquery-2.1.1.min.js"></script>
@@ -25,36 +28,38 @@
   <script src="static/brainbrowser/surface-viewer/modules/rendering.js"></script>
   <script src="static/brainbrowser/surface-viewer/modules/views.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-
-  <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,300,700' rel='stylesheet' type='text/css'>
-  <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
   <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
 
   <style>
 
+    footer {
+      background-image: url('static/Brainforest29_1119-640x318.jpg');
+      height: 8em;
 
+    }
     .node circle {
       cursor: pointer;
-      stroke: #3182bd;
+      stroke: #A8A8A8;
       stroke-width: 1.5px;;
     }
 
     .node text {
-      font: 10px sans-serif;
+      font-family: Open Sans, sans-serif;
+      font-size: .8em;
       pointer-events: none;
       text-anchor: middle;
     }
 
     line.link {
       fill: none;
-      stroke: #9a9a9a;  
+      stroke: black;  
       stroke-width: 1.5px;
 
     }
 
     #brainbrowser_here {
       height: 500px;
-      width: 400px;
+      width: 450px;
     }
 
     #d3_here {
@@ -64,14 +69,16 @@
     }
 
     #references {
-      height: 700px;
+      height: 650px;
       overflow-y:scroll;
+      font-family:Open Sans, sans-serif;
+      border: 2px solid #ffae42;
     }
 
     body {
-      background: white; 
+/*      background: white; */
       font-family: Raleway, sans-serif;
-      font-weight:300;
+      font-weight:400;
     }
 
     h3 {
@@ -87,31 +94,47 @@
       text-align: center;
     }
 
+    button {
+      background: #D0D0D0;
+      border-radius: 4px;
+      font-family: Open Sans, sans-serif;
+      font-weight:300;
+    }
+
+    .panel-default {
+      -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+      -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+      box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+
+    }
+
     .row {
-      margin: 10px;
+      margin: 5px;
     }
 
     .ui-widget {
-      font-family: Raleway, sans-serif;
+      font-family: Open Sans, sans-serif;
       font-weight:300;
     }
 
     .ui-widget button {
-      font-family: Raleway,sans-serif;
+      font-family: Open Sans,sans-serif;
       font-weight:300;
+      background: #D0D0D0;
     }
 
-    .panel > .panel-heading {
+    .panel-default > .panel-heading {
       text-align: center;
+      background-color: #ffae42; 
     }
 
     .well {
       height: 130px;
+      background-color: white;
+      -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+      -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+      box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
     }
-
-/*    .form_inline {
-      height: 170px;
-    }*/
 
   </style>
 
@@ -156,14 +179,13 @@
                   <input type="text" name="word_search" id="word_search">
                 </label>
                 <button type="button" id="submit_word">Search</button>
-              </div>
-            </form>
+                </form>
+            </div>
           </div>
         </div>
       </div> <!--End form --> 
 
-
-      </div> <!-- end Column 1 --> 
+    </div> <!-- end Column 1 --> 
 
     
     <div class= "col-lg-4"> <!-- Column 2-->
@@ -176,7 +198,8 @@
 
       <div class="row"> <!-- Brainbrowser-->
         <div class="panel panel-default">
-          <div class="panel-heading">Shift+click to explore the brain!
+          <div class="panel-heading">
+            <h4>Shift+click to explore the brain!</h4>
           </div>
           <div class="panel-body">
             <div id="brainbrowser_here"></div>
@@ -204,6 +227,8 @@
     
   </div> <!--End main row--> 
 </div> <!--End container--> 
+
+<footer></footer>
 
 <!--     <div id="title">
       <h3>Brain Odyssey</h3>
@@ -270,7 +295,7 @@
             var x = Math.round(pick_info.point.x);
             var y = Math.round(pick_info.point.y);
             var z = Math.round(pick_info.point.z);
-            viewer.drawDot(x, y, z, 2, 0x3399CC);   // display the click 
+            viewer.drawDot(x, y, z, 2, 0xFF9900);   // display the click 
 
             // Clear the screen of residual D3, refs, intensity maps 
             clearScreen();
@@ -535,7 +560,7 @@
 
         function color(d) {   // node colors 
           return  d._children ? "#3182bd" //  collapsed package (no longer in use)
-              : d.children ? "#008080" // expanded package //
+              : d.children ? "#D0D0D0" // expanded package //
               : "#ffae42"; // leaf node
         }
 

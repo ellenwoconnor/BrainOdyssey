@@ -75,21 +75,21 @@ class Location(db.Model):
 
 ### Look up xyz locations associated with a word ################################
 
-    @classmethod
-    def get_xyzs_from_word(cls, word, freq=.1):
-        """Returns all surface xyz coordinates associated with a word.
+    # @classmethod
+    # def get_xyzs_from_word(cls, word, freq=.1):
+    #     """Returns all surface xyz coordinates associated with a word.
 
-        Used to place dots on the brain in locations associated with a word.
-        [NO LONGER IN USE.]"""
+    #     Used to place dots on the brain in locations associated with a word.
+    #     [NO LONGER IN USE.]"""
 
-        location_coords = db.session.query(
-            cls.x_coord, cls.y_coord, cls.z_coord).join(
-            Activation).join(Study).join(StudyTerm).filter(
-            StudyTerm.word == word,
-            StudyTerm.frequency > freq,
-            cls.location_id < 81925).group_by(Activation.location_id).all()
+    #     location_coords = db.session.query(
+    #         cls.x_coord, cls.y_coord, cls.z_coord).join(
+    #         Activation).join(Study).join(StudyTerm).filter(
+    #         StudyTerm.word == word,
+    #         StudyTerm.frequency > freq,
+    #         cls.location_id < 81925).group_by(Activation.location_id).all()
 
-        return location_coords
+    #     return location_coords
 
 
 ###########################################################################
@@ -535,7 +535,6 @@ class Cluster(db.Model):
             return False
         else:
             return True
-
 
 
 ##############################################################################

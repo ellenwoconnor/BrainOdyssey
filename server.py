@@ -4,7 +4,7 @@ from jinja2 import StrictUndefined
 from model import Location, Activation, Study, StudyTerm, Term, TermCluster, Cluster, connect_to_db
 from flask import Flask, render_template, jsonify, request
 from operator import itemgetter
-import numpy as np #Can I import only std and mean functions? 
+import numpy as np
 
 app = Flask(__name__)
 
@@ -105,6 +105,7 @@ def generate_d3(radius=3):
     # Build the terminal nodes (leaves) first using (wd, freq) tuples
     # Output: {word: {'name': word, 'size': freq}, word2: ... }
     leaves = {}
+
     for (word, freq) in terms_for_dict:
         if word not in leaves:
             leaves[word] = {'name': word, 'size': freq * scale}
@@ -114,6 +115,7 @@ def generate_d3(radius=3):
     # Embed the leaves in the clusters:
     # Output: {cluster_id: {'name': ID, 'children': [...]}, ... }
     clusters = {}
+
     for (cluster_id, word) in associations:
         if cluster_id not in clusters:
             clusters[cluster_id] = {'name': cluster_id, 'children': [leaves[word]]}
@@ -250,8 +252,6 @@ def generate_intensity():
         # Scale study counts in preparation for intensity mapping
         intensities_by_location = scale_study_counts(activations)
 
-
-    print "INTENSITIES PROVIDED: ", intensities_by_location
     intensity_vals = generate_intensity_map(intensities_by_location)
 
     return intensity_vals
@@ -333,7 +333,7 @@ def scale_frequencies_by_loc(activations, max_intensity, frequencies_by_pmid):
 
 
 def generate_intensity_map(intensities_by_location):
-    """Returns a string with intensity values for each of 81925 surface 
+    """Returns a string with intensity values for each of 81925 surface
     locations."""
 
     intensity_vals = ""
