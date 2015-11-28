@@ -7,6 +7,7 @@ import doctest
 import servercov
 from server import app
 from model import connect_to_db
+from selenium import webdriver
 
 # def load_tests(loader, tests, ignore):
 #     """Run doctests and file-based doctests."""
@@ -19,14 +20,50 @@ class MyAppUnitTestCast(unittest.TestCase):
 
     def setUp(self):
         self.client = server.app.test_client()
+        self.browser = webdriver.Chrome()
         app.config['TESTING'] = True
         connect_to_db(app)
+
+    def tearDown(self):
+        self.browser.quit()
+
+    def test_title(self):
+        self.browser.get('http://localhost:5000/')
+        self.assertEqual(self.browser.title, 'Brain Odyssey')
 
     def test_homepage(self):
         test_client = server.app.test_client()
 
         result = test_client.get('/')
         self.assertEqual(result.status_code, 200)
+
+    def test_location(self):
+        self.browser.get('http://localhost:5000/')
+        x = self.browser.find_element_by_id('xcoord')
+        x.send_keys('40')
+        y = self.browser.find_element_by_id('ycoord')
+        y.send_keys('-45')
+        z = self.browser.find_element_by_id('zcoord')
+        z.send_keys('-25')
+        btn = self.browser.find_element_by_id('submit-xyz')
+        btn.click()
+
+        header = self.browser.find_element_by_id('header')
+        self.assertEqual(header.text, 'Location:<br>40 -45 -25')
+        references = self.browser.find_element_by_id('references_title')
+        self.assertEqual(references.text, 'References')
+
+    def test_word(self):
+        self.browser.get('http://localhost:5000/')
+        wordsearch = self.browser.find_element_by_id('word_search')
+        wordsearch.send_keys('face')
+        btn = self.browser.find_element_by_id('submit_word')
+        btn.click()
+
+        header = self.browser.find_element_by_id('header')
+        self.assertEqual(header.text, 'Word:<br>face')
+        references = self.browser.find_element_by_id('references_title')
+        self.assertEqual(references.text, 'References')
 
 ## D3 ROUTES ###################################################################
 
@@ -95,17 +132,14 @@ class MyAppUnitTestCast(unittest.TestCase):
 ## REFERENCES ROUTES ##########################################################
 
     def test_citations_from_location(self):
-        test_client = server.app.test_client()
         result = test_client.get('/citations.json?xcoord=40&ycoord=-45&zcoord=-25&options=location')
         self.assertEqual(result.status_code, 200)
 
     def test_citations_from_word(self):
-        test_client = server.app.test_client()
         result = test_client.get('/citations.json?word=pain&options=word')
         self.assertEqual(result.status_code, 200)
 
     def test_citations_from_cluster(self):
-        test_client = server.app.test_client()
         result = test_client.get('/citations.json?pmid=11960899&options=study')
         self.assertEqual(result.status_code, 200)
 

@@ -5,6 +5,7 @@
 <head>
   <title>Brain Odyssey</title>
 
+  <link href='https://fonts.googleapis.com/css?family=Maven+Pro|Varela|Lato' rel='stylesheet' type='text/css'>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
   <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,300,700|Josefin+Sans:400,600,700,600italic' rel='stylesheet' type='text/css'>
   <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
@@ -44,7 +45,7 @@
     }
 
     .node text {
-      font-family: Open Sans, sans-serif;
+      font-family: Lato, sans-serif;
       font-size: .8em;
       pointer-events: none;
       text-anchor: middle;
@@ -59,31 +60,25 @@
 
     #brainbrowser_here {
       height: 500px;
-      width: 450px;
+      width: 440px;
     }
 
     #d3_here {
       float:left;
       height:500px;
-      width:400px;
+      width:450px;
     }
 
     #references {
       height: 650px;
       overflow-y:scroll;
-      font-family:Open Sans, sans-serif;
-      border: 2px solid #ffae42;
+      font-family:Lato, sans-serif;
     }
 
     body {
-/*      background: white; */
-      font-family: Raleway, sans-serif;
+      background: white; 
+      font-family: Lato, sans-serif;
       font-weight:400;
-    }
-
-    h3 {
-      font: 30px sans-serif;
-      font-weight: bold;
     }
 
     h4 {
@@ -92,20 +87,34 @@
 
     h2 {
       text-align: center;
+      font-family: Lato;
     }
 
     button {
       background: #D0D0D0;
       border-radius: 4px;
-      font-family: Open Sans, sans-serif;
+      font-family: Lato, sans-serif;
       font-weight:300;
+      margin-left:5px;
+      border:none;
     }
 
+    button:hover {
+      background-color:#ffae42;
+    }
+
+    .form-inline {
+      text-align: center;
+    }
     .panel-default {
       -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+      border:none;
 
+/*      -webkit-box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);
+      -moz-box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);
+      box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);*/
     }
 
     .row {
@@ -113,27 +122,38 @@
     }
 
     .ui-widget {
-      font-family: Open Sans, sans-serif;
+      font-family: Lato, sans-serif;
       font-weight:300;
     }
 
     .ui-widget button {
-      font-family: Open Sans,sans-serif;
+      font-family: Lato,sans-serif;
       font-weight:300;
       background: #D0D0D0;
+    }
+    .ui-widget button:hover {
+      background: #ffae42;
     }
 
     .panel-default > .panel-heading {
       text-align: center;
-      background-color: #ffae42; 
+      background: #37343b;
+      color: white;
+      border:none;
+
     }
 
     .well {
       height: 130px;
-      background-color: white;
+      border:none;
+      background-image: url('/static/purkinje_edited.jpg');
+      color: white;
       -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
+/*      -webkit-box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);
+      -moz-box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);
+      box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);*/
     }
 
   </style>
@@ -199,7 +219,7 @@
       <div class="row"> <!-- Brainbrowser-->
         <div class="panel panel-default">
           <div class="panel-heading">
-            <h4>Shift+click to explore the brain!</h4>
+            <h4>shift+click to explore the brain</h4>
           </div>
           <div class="panel-body">
             <div id="brainbrowser_here"></div>
@@ -230,44 +250,6 @@
 
 <footer></footer>
 
-<!--     <div id="title">
-      <h3>Brain Odyssey</h3>
-    </div>
-
-    <div class="non_inline">
-      <form id="xyz_coord">Shift+click on the brain or enter coordinates manually here:
-          <label for="xcoord">X:
-              <input type="text" name="xcoord" id="xcoord">
-          </label>
-          <label for="ycoord">Y:
-              <input type="text" name="ycoord" id="ycoord">
-          </label>
-          <label for="zcoord">Z:
-              <input type="text" name="zcoord" id="zcoord">
-          </label>
-          <button type="button" id="submit-xyz">Select these coordinates</button>
-          <br><br>
-      </form>
-
-      <form id="word_search_form">
-        <label for="word_search">Enter a word here to search for activation patterns:
-          <input type="text" name="word_search" id="word_search">
-        </label>
-        <button type="button" id="submit_word">Search</button>
-        <br><br>
-      </form>
-    
-    <h4 id="header"></h4>
-    <div id="brainbrowser_here" class="inline_box"></div>
-    <div id="d3_here" class="inline_box"></div>
-    <div class="references_div">
-      <h4 id="references_title"></h4>
-      <ol id="references">
-      </ol>
-    </div> -->
-
-
-
     <script>
 
     // MAIN BRAINBROWSER FUNCTION  /////////////////////////////////////////////
@@ -280,7 +262,11 @@
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
-        viewer.loadModelFromURL('static/models/brain-surface.obj');  // load MNIobj 
+        viewer.loadModelFromURL('static/models/brain-surface.obj', {
+          complete: function() {
+            viewer.setTransparency(1);
+          }
+        });  // load MNIobj 
 
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
         $("#brainbrowser_here").click(function(event) {
@@ -350,7 +336,7 @@
 
 
     function displayHeader(searchType, searchParameter) {
-      var msg = searchType + ":<br> " + searchParameter;
+      var msg = searchType + ":<br>" + searchParameter;
       $('#header').html(msg);
     }
     
@@ -560,8 +546,8 @@
 
         function color(d) {   // node colors 
           return  d._children ? "#3182bd" //  collapsed package (no longer in use)
-              : d.children ? "#D0D0D0" // expanded package //
-              : "#ffae42"; // leaf node
+              : d.children ? "#4B484E" // expanded package //
+              : "#ffae42"; // leaf node#4B484E
         }
 
         // Event handler to deal with node clicks: 

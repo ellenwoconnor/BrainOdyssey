@@ -20,8 +20,8 @@ db = SQLAlchemy()
 #   Activation:     location-study associations
 #   Term:           individual words
 #   StudyTerm:      associations between studies and words
-#   TermCluster:    associations between words and topical clusters
-#   cluster:        topical cluster IDs
+#   TermCluster:    associations between words and topic clusters
+#   Cluster:        topic cluster IDs
 #
 #
 ###########################################################################
@@ -59,6 +59,9 @@ class Location(db.Model):
         """Returns existing xyz instance of the class (None if no such
         instance exists).
 
+            Args: x, y & z location coordinates (floats between -100-100)
+
+            Examples:
             >>> Location.check_by_xyz(4, -68, 6)
             <Location id=80039 x=4 y=-68 z=6>
 
@@ -122,6 +125,10 @@ class Activation(db.Model):
         """Returns the PubMed IDs (unique identifiers) for any studies reporting
         activation at or near the xyz coordinate.
 
+            Args: x, y & z location coordinates (floats between -100-100)
+
+            Examples: 
+
             >>> Activation.get_pmids_from_xyz(-60, 0, -30, 3)
             Getting all studies with radius 3
             [15737663, 16481375, 17121746, 21908871]
@@ -173,10 +180,15 @@ class Activation(db.Model):
         """Returns activations from a specified set of studies, reporting
         activation on the brain surface.
 
-            >>> Activation.get_activations_from_studies([25619848])
-            [<Activation pmid=25619848 location_id=1459>, <Activation pmid=25619848 location_id=81891>]
+            Args: a list of PubMed study identifiers
 
-        Used to generate intensity maps when user clicks on a reference.
+            Example:
+
+            >>> Activation.get_activations_from_studies([25619848]) # doctest +NORMALIZE_WHITESPACE
+            [<Activation pmid=25619848 location_id=1459>, 
+            <Activation pmid=25619848 location_id=81891>]
+
+        Used to generate intensity maps.
         """
 
         activations = cls.query.filter(
@@ -184,16 +196,21 @@ class Activation(db.Model):
 
         return activations
 
+### Look up the number of studies associated with a location ##################
 
     @classmethod
     def get_location_count_from_studies(cls, studies):
-        """Returns activations (location_id, study count) from a provided
-        list of PubMed IDs, limited to surface locations only.
+        """Returns activations (location_id, study count), 
+        limited to surface locations only.
 
+            Args: a list of PubMed study identifiers
+
+            Example:    
             >>> Activation.get_activations_from_studies([25619848])
             [<Activation pmid=25619848 location_id=1459>, <Activation pmid=25619848 location_id=81891>]
 
-        Used to generate intensity maps when user clicks on a reference.
+        Used to generate intensity maps when user clicks on a reference, with
+        study counts used to derive intensity map in lieu of word frequency metrics.
         """
 
         activations = db.session.query(cls.location_id, func.count(cls.pmid
@@ -224,21 +241,30 @@ class Study(db.Model):
 
     @classmethod
     def get_study_by_pmid(cls, pmid):
-        """Returns existing instance of Study class associated
-        with a PubMed ID.
+        """Returns existing instance of Study class associated with a PubMed ID.
 
-        Used in database seeding"""
+        Args: PubMed id (an 8-digit integer)
+
+        Used in database seeding."""
 
         print "Found study ", pmid
         study_obj = cls.query.filter(cls.pmid == pmid).first()
         return study_obj
 
+    ### Get a formatted citation ###############################################
+
     @classmethod
     def get_references(cls, pmids):
-        """Returns a list of references associated with specified PubMed IDs.
+        """Returns formatted references associated with a list of PubMed IDs.
 
-            >>> Study.get_references([15737663])
-            {15737663: u'Li CS, Kosten TR, Sinha R. (2005). Sex differences in brain activation during stress imagery in abstinent cocaine users: a functional magnetic resonance imaging study. Biological psychiatry.'}
+            Args: a list of PubMed ids
+            Example: 
+
+            >>> Study.get_references([15737663]) # doctest +NORMALIZE_WHITESPACE
+            {15737663: u'Li CS, Kosten TR, Sinha R. (2005). 
+            Sex differences in brain activation during stress imagery in 
+            abstinent cocaine users: a functional magnetic resonance imaging 
+            study. Biological psychiatry.'}
         
         Used to display reference list."""
 
@@ -246,7 +272,8 @@ class Study(db.Model):
         citations = {}
 
         for reference in references:
-            citation_text = reference.authors + ". (" + str(reference.year) + "). " + reference.title + " " + reference.journal + "."
+            citation_text = reference.authors + ". (" + str(
+                reference.year) + "). " + reference.title + " " + reference.journal + "."
             citations[reference.pmid] = citation_text
 
         return citations
@@ -256,11 +283,15 @@ class Study(db.Model):
     def get_cluster_mates(self):
         """Returns the other studies in a study cluster.
 
-            >>> study = Study.get_study_by_pmid(15737663)
+            Args: a row of data corresponding to a unique study 
+
+            Example:
+            >>> study = Study.get_study_by_pmid(15737663) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
             Found study  15737663
             >>> study.get_cluster_mates()
             Getting all cluster mates associated with cluster  62
-            [14625150, 15737663, 16284946, 17032778, 17428684, 17686466, 17873968, 19403118, 19555674, 19596123, 19632211, 19641623, 19675245, 19720989, 19846063, 20004250, 20139149, 20621656, 20692349, 20861377, 21126593, 21211567, 21246665, 21498384, 21609968, 21664280, 21705195, 21783177, 22079927, 22291028, 22418012, 22442069, 22504779, 22674267, 22875937, 22929607, 23125822, 23401511, 23587493, 23730277, 23776438, 23840493, 23967320, 24316200, 24352030, 24478326, 24553284, 24760847, 25554429]
+            [14625150, 15737663, 16284946, 17032778, 17428684, 17686466, 
+            ... 24316200, 24352030, 24478326, 24553284, 24760847, 25554429]
         
         """
 
@@ -315,7 +346,14 @@ class StudyTerm(db.Model):
         """Returns all terms associated with certain PMIDs, and the frequency
         the term is used in each text.
 
-            >>> StudyTerm.get_terms_by_pmid([15737663, 16481375, 17121746, 21908871]) # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+            Args:
+                pmids: a list of PubMed IDs
+                lim: the number of terms to return (default is 100)
+                freq_threshold: the cutoff word frequency to accept
+                    (default is .05)
+
+            >>> StudyTerm.get_terms_by_pmid([15737663, 16481375, 17121746, 21908871])
+            # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
             Getting all terms from studies [15737663, 16481375, 17121746, 21908871]
             ([(u'stress', 0.648257962749), (u'asd', 0.536948763846),
                 (u'voice', 0.522110847073), (u'children', 0.390914181003), ...
@@ -334,10 +372,15 @@ class StudyTerm(db.Model):
         return terms, [term[0] for term in terms if term[1] > freq_threshold]
 
 
+    ### Retrieve studies assoc. with terms  ###################################
+
     @classmethod
     def get_pmid_by_term(cls, word, limit=40):
-        """Returns a list of the top n studies associated with a list of words
-        [w1] or [w1, w2, w3...].
+        """Returns a list of the top n studies associated with one or more words.
+
+            Args: 
+                word: a word 'word' or list of words ['word','word','word',...]
+                limit: the number of studies to return (default is 40)
 
         PMIDs used to generate references."""
 
@@ -357,10 +400,20 @@ class StudyTerm(db.Model):
 
         return [pmid[0] for pmid in pmids]
 
+    ### Retrieve term frequencies assoc. with studies  #######################
+
     @classmethod
     def get_by_word(cls, word, limit=1000):
-        """Returns db rows where the study mentions some desired word(s)
-        at or above a given frequency threshold."""
+        """Returns a list of db rows where the study mentions some desired word(s)
+        at or above a given frequency threshold.
+
+            Args: 
+                word: a word 'word' or list of words ['word', 'word', 'word'...]
+                limit: the number of rows to return (default is 1000; anything
+                    more than this will cause the in_ statement in the query to
+                    fail)
+
+        Used to build intensity maps."""
 
         if isinstance(word, list):
             pmidfreqs = cls.query.filter(
@@ -395,6 +448,8 @@ class Term(db.Model):
     def check_for_term(cls, word):
         """Returns True if a word is in Term table already, False if not.
 
+            Args: a string, e.g. 'word'
+
             >>> Term.check_for_term('willy-nilly')
             False
             >>> Term.check_for_term('emotion')
@@ -402,7 +457,7 @@ class Term(db.Model):
 
         Used in database seeding"""
 
-        # TO DO: allow for some kind of fuzzy search so that:
+        # TO DO: allow for some kind of broader search so that:
         #
         # (1) If a word is really a two-word phrase, check if
         # either of those words is in the Term table.
@@ -416,6 +471,7 @@ class Term(db.Model):
 
     @classmethod
     def get_all(cls):
+        """Returns a list of words in db. Used for autocomplete functionality."""
 
         words = db.session.query(Term.word).all()
 
@@ -448,14 +504,19 @@ class TermCluster(db.Model):
 
     @classmethod
     def get_top_clusters(cls, terms, n=12):
-        """Returns the 'most relevant' topic clusters given a word or
+        """Returns a list of the 'most relevant' topic clusters given a word or
         list of words by maximizing the # of words per cluster.
+
+            Args:  
+                terms: a list of words ['word', 'word', ...] or a single string 
+                    'word'
+                n: the number of clusters to return (depends on D3 display)
 
             >>> TermCluster.get_top_clusters([u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer'])
             Getting the top clusters associated with terms [u'accurate', u'addiction', u'advantage', u'agreement', u'alzheimer']
             [35, 98, 100, 228, 231, 304, 305, 306, 338, 377, 379, 393]
-
-        """
+        
+        Used to generate D3."""
 
         print "Getting the top clusters associated with ", terms[0:25]
 
@@ -475,7 +536,11 @@ class TermCluster(db.Model):
 
     @classmethod
     def get_word_cluster_pairs(cls, clusters, words):
-        """Returns a list of cluster-word pairs.
+        """Returns a list of (cluster ID, word) tuples.
+
+            Args:
+                words: a list of words ['word', 'word', ...]
+                clusters: a list of cluster IDs [0, 56, 200, ...]
 
             >>> TermCluster.get_word_cluster_pairs([133], [u'disease'])
             Getting the associations with clusters [133]
@@ -496,7 +561,11 @@ class TermCluster(db.Model):
 
     @classmethod
     def get_words_in_cluster(cls, cluster):
-        """Returns a list of words associated with some cluster."""
+        """Returns a list of words associated with some cluster.
+
+            Args: a cluster ID (an integer between 0-400)
+
+        """
 
         print "Getting the words associated with cluster", cluster
 

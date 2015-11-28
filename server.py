@@ -233,11 +233,6 @@ def generate_intensity():
         intensities_by_location = scale_frequencies_by_loc(
             activations, max_intensity, frequencies_by_pmid)
 
-        # Then assemble the intensity map
-        intensity_vals = generate_intensity_map(intensities_by_location)
-
-        return intensity_vals
-
     elif clicked_on == 'study':
 
         pmid = request.args.get('pmid')
@@ -252,6 +247,9 @@ def generate_intensity():
         # Scale study counts in preparation for intensity mapping
         intensities_by_location = scale_study_counts(activations)
 
+        print "Found intensities: ", intensities_by_location
+
+    # Assemble the intensity map
     intensity_vals = generate_intensity_map(intensities_by_location)
 
     return intensity_vals
@@ -291,7 +289,7 @@ def organize_frequencies_by_study(studies):
     """Returns a dictionary of {PubMed ID : word frequency} values, given
     some raw data from StudyTerm table.
 
-    Used as an intermediate lookup when building intensity map, in lieu of 
+    Used as an intermediate lookup when building final intensity map, in lieu of 
     performing a complex join query."""
 
     frequencies_by_pmid = {}
@@ -312,14 +310,13 @@ def organize_frequencies_by_study(studies):
 def scale_frequencies_by_loc(activations, max_intensity, frequencies_by_pmid):
     """Returns a dictionary of {location_id : scaled intensity} values.
 
-    Intensity values are derived from word frequency metrics and scale using
-    the maximal values.
-
-    TO DO: Generate normalized intensities"""
+    Intensity values are derived from word frequency metrics and scaled using
+    the maximal values."""
 
     intensities_by_location = {}
 
     for activation in activations:
+        
         intensity_to_add = frequencies_by_pmid[activation.pmid]
 
         if activation.location_id not in intensities_by_location:
@@ -353,9 +350,7 @@ def scale_study_counts(activations):
     """Returns a dictionary of {location_id : scaled intensity} values.
 
     Intensity values are derived from study counts and scaled using the
-    maximal counts.
-
-    TO DO: Generate normalized intensities."""
+    maximal counts."""
 
     # counts = [activation[1] for activation in activations]
 
@@ -390,9 +385,11 @@ def scale_study_counts(activations):
         location_id, count = activation
 
         if location_id not in intensities_by_location:
-            intensities_by_location[location_id] = float(count)/float(max_count)
+            # intensities_by_location[location_id] = float(count)/float(max_count)
+            intensities_by_location[location_id] = .5
         else:
-            intensities_by_location[location_id] += float(count)/float(max_count)
+            # intensities_by_location[location_id] += float(count)/float(max_count)
+            intensities_by_location[location_id] += .5
 
     return intensities_by_location
 
