@@ -183,7 +183,6 @@ class Activation(db.Model):
             Args: a list of PubMed study identifiers
 
             Example:
-
             >>> Activation.get_activations_from_studies([25619848]) # doctest +NORMALIZE_WHITESPACE
             [<Activation pmid=25619848 location_id=1459>, 
             <Activation pmid=25619848 location_id=81891>]

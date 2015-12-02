@@ -7,9 +7,8 @@
 
   <link href='https://fonts.googleapis.com/css?family=Maven+Pro|Varela|Lato' rel='stylesheet' type='text/css'>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
-  <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,300,700|Josefin+Sans:400,600,700,600italic' rel='stylesheet' type='text/css'>
   <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
-  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,400italic' rel='stylesheet' type='text/css'>
+
   <script src="static/d3.js"></script>
   <script src="static/jquery.js"></script>
   <script src="static/brainbrowser/js/jquery-2.1.1.min.js"></script>
@@ -36,8 +35,8 @@
     footer {
       background-image: url('static/Brainforest29_1119-640x318.jpg');
       height: 8em;
-
     }
+
     .node circle {
       cursor: pointer;
       stroke: #A8A8A8;
@@ -55,7 +54,6 @@
       fill: none;
       stroke: black;  
       stroke-width: 1.5px;
-
     }
 
     #brainbrowser_here {
@@ -131,6 +129,7 @@
       font-weight:300;
       background: #D0D0D0;
     }
+
     .ui-widget button:hover {
       background: #ffae42;
     }
@@ -151,9 +150,6 @@
       -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
-/*      -webkit-box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);
-      -moz-box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);
-      box-shadow: inset 10px 10px 140px -39px rgba(0,0,0,0.75);*/
     }
 
   </style>
@@ -265,6 +261,7 @@
         viewer.loadModelFromURL('static/models/brain-surface.obj', {
           complete: function() {
             viewer.setTransparency(1);
+            viewer.setV
           }
         });  // load MNIobj 
 

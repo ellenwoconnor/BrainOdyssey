@@ -38,6 +38,7 @@ def retrieve_words():
 
 @app.route('/d3topic.json')
 def generate_topic_d3():
+    # TO DO Adding validation of cluster ID here and then extra tests 
 
     cluster_id = request.args.get("cluster")
     words = TermCluster.get_words_in_cluster(cluster_id)
@@ -316,7 +317,7 @@ def scale_frequencies_by_loc(activations, max_intensity, frequencies_by_pmid):
     intensities_by_location = {}
 
     for activation in activations:
-        
+
         intensity_to_add = frequencies_by_pmid[activation.pmid]
 
         if activation.location_id not in intensities_by_location:
@@ -352,30 +353,6 @@ def scale_study_counts(activations):
     Intensity values are derived from study counts and scaled using the
     maximal counts."""
 
-    # counts = [activation[1] for activation in activations]
-
-    # center = np.mean(np.array(counts)) - 3      # Center the distribution on 3
-    # std_count = np.std(np.array(counts))        # Normalize by division by sd 
-
-    # intensities_by_location = {}
-
-    # for activation in activations:
-
-    #     location_id, count = activation
-
-    #     if std_count == 0:      # std dev is 0, so all values are at mean
-    #         intensities_by_location[location_id] = 3
-
-    #     else:
-    #         if location_id not in intensities_by_location:
-    #             intensities_by_location[location_id] = (
-    #                 float(count)-float(center))/float(std_count)
-    #         else:
-    #             intensities_by_location[location_id] += (
-    #                 float(count)-float(center))/float(std_count)
-
-    # return intensities_by_location
-
     max_count = max(activations, key=itemgetter(1))[1]
 
     intensities_by_location = {}
@@ -385,11 +362,9 @@ def scale_study_counts(activations):
         location_id, count = activation
 
         if location_id not in intensities_by_location:
-            # intensities_by_location[location_id] = float(count)/float(max_count)
-            intensities_by_location[location_id] = .5
+            intensities_by_location[location_id] = float(count)/float(max_count)
         else:
-            # intensities_by_location[location_id] += float(count)/float(max_count)
-            intensities_by_location[location_id] += .5
+            intensities_by_location[location_id] += float(count)/float(max_count)
 
     return intensities_by_location
 

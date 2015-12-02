@@ -17,17 +17,16 @@ Data model
 ----------
 The data are seeded into seven tables: 
 
-==========  ===============
-table       description
-==========  ===============
-Location    individual x-y-z locations
-Study       individual studies
-Activation  location-study associations
-Term        individual words
-StudyTerm   associations between studies and words
-TermCluster associations between words and topic clusters
-Cluster     topic cluster IDs
-==========  ===============
+Location:    individual x-y-z locations
+Study:       individual studies
+Activation:  location-study associations
+Term:        individual words
+StudyTerm:   associations between studies and words
+TermCluster: associations between words and topic clusters
+Cluster:     topic cluster IDs
+
+User interactions
+-----------------
 
 Users can interact with BrainBrowser in three ways, each triggering AJAX calls to the database for information display in the D3, references or Brainbrowser: 
 
