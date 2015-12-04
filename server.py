@@ -38,7 +38,8 @@ def retrieve_words():
 
 @app.route('/d3topic.json')
 def generate_topic_d3():
-    # TO DO Adding validation of cluster ID here and then extra tests 
+    """Returns JSON with a topic cluster as the root node."""
+    # TO DO Adding cluster ID validation and then extra tests to tests.py
 
     cluster_id = request.args.get("cluster")
     words = TermCluster.get_words_in_cluster(cluster_id)
@@ -54,6 +55,8 @@ def generate_topic_d3():
 
 @app.route('/d3word.json')
 def generate_word_d3():
+    """ Returns JSON with a word as the root node."""
+    # TO DO Adding word validation and then extra tests to tests.py
 
     word = request.args.get("word")
     clusters = TermCluster.get_top_clusters(word, n=25)

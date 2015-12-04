@@ -5,7 +5,7 @@
 <head>
   <title>Brain Odyssey</title>
 
-  <link href='https://fonts.googleapis.com/css?family=Maven+Pro|Varela|Lato' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Maven+Pro|Varela|Lato' rel='stylesheet'>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
   <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
 
@@ -37,42 +37,6 @@
       height: 8em;
     }
 
-    .node circle {
-      cursor: pointer;
-      stroke: #A8A8A8;
-      stroke-width: 1.5px;;
-    }
-
-    .node text {
-      font-family: Lato, sans-serif;
-      font-size: .8em;
-      pointer-events: none;
-      text-anchor: middle;
-    }
-
-    line.link {
-      fill: none;
-      stroke: black;  
-      stroke-width: 1.5px;
-    }
-
-    #brainbrowser_here {
-      height: 500px;
-      width: 440px;
-    }
-
-    #d3_here {
-      float:left;
-      height:500px;
-      width:450px;
-    }
-
-    #references {
-      height: 650px;
-      overflow-y:scroll;
-      font-family:Lato, sans-serif;
-    }
-
     body {
       background: white; 
       font-family: Lato, sans-serif;
@@ -101,18 +65,51 @@
       background-color:#ffae42;
     }
 
+    .node circle {
+      cursor: pointer;
+      stroke: #A8A8A8;
+      stroke-width: 1.5px;;
+    }
+
+    .node text {
+      font-family: Lato, sans-serif;
+      font-size: .8em;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    line.link {
+      fill: none;
+      stroke: black;  
+      stroke-width: 1.5px;
+    }
+
+    #brainbrowser-here {
+      height: 500px;
+      width: 440px;
+    }
+
+    #d3-here {
+      float:left;
+      height:500px;
+      width:450px;
+    }
+
+    #references {
+      height: 650px;
+      overflow-y:scroll;
+      font-family:Lato, sans-serif;
+    }
+
     .form-inline {
       text-align: center;
     }
+
     .panel-default {
       -webkit-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       -moz-box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       box-shadow: 11px 10px 121px -9px rgba(0,0,0,0.74);
       border:none;
-
-/*      -webkit-box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);
-      -moz-box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);
-      box-shadow: inset 0px 0px 112px -39px rgba(0,0,0,0.75);*/
     }
 
     .row {
@@ -139,7 +136,6 @@
       background: #37343b;
       color: white;
       border:none;
-
     }
 
     .well {
@@ -157,8 +153,8 @@
 </head>
 
 <body>
-
   <!--HTML BODY --> 
+  <!--TODO: clean up html, make div sizes responsive, etc. --> 
 
 <div class="container-fluid">
   <div class="row"> <!--main row--> 
@@ -168,7 +164,7 @@
       <div class="row"> <!-- D3-->
         <div class="panel panel-default">
           <div class="panel-body">
-            <div id="d3_here" class="inline_box"></div>
+            <div id="d3-here" class="inline_box"></div>
           </div>
         </div>
       </div>
@@ -191,8 +187,8 @@
             </form>
             <div class="ui-widget">
               <form class="form-inline" id="word_search_form">Enter a word here to search for activation patterns:<br>
-                <label for="word_search">
-                  <input type="text" name="word_search" id="word_search">
+                <label for="word-search">
+                  <input type="text" name="word-search" id="word-search">
                 </label>
                 <button type="button" id="submit_word">Search</button>
                 </form>
@@ -218,7 +214,7 @@
             <h4>shift+click to explore the brain</h4>
           </div>
           <div class="panel-body">
-            <div id="brainbrowser_here"></div>
+            <div id="brainbrowser-here"></div>
           </div> 
         </div>
       </div> <!-- end Brainbrowser--> 
@@ -250,25 +246,27 @@
 
     // MAIN BRAINBROWSER FUNCTION  /////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
+    // TODO split into separate js files and add script links 
+
+    // Render the 3D brain 
 
     BrainBrowser.config.set("worker_dir", "static/brainbrowser/workers")
     
-    function render_brainbrowser() {
-      window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser_here", function(viewer) {
+    function renderBrainbrowser() {
+      window.viewer = BrainBrowser.SurfaceViewer.start("brainbrowser-here", function(viewer) {
         
         viewer.render(); // render the 3d viewer
         viewer.setClearColor(parseInt('ffffff', 16));  // set background to white
         viewer.loadModelFromURL('static/models/brain-surface.obj', {
           complete: function() {
-            viewer.setTransparency(1);
-            viewer.setV
+            viewer.setTransparency(1); // adjust the transparency 
           }
         });  // load MNIobj 
 
         // Event handler sends an AJAX request using x, y, z coordinates when the user clicks on a part of the brain 
-        $("#brainbrowser_here").click(function(event) {
+        $("#brainbrowser-here").click(function(event) {
 
-          // If ctrlClick, get the xyz coordinates,
+          // If ctrlClick/shiftClick, get the xyz coordinates,
           // draw a dot at that location,
           // clear any old D3,
           // and tell the user to expect the new D3 
@@ -309,7 +307,7 @@
     // DEFAULT FUNCTIONS /////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    render_brainbrowser()
+    renderBrainbrowser()
 
     $("#header").html("Brain Odyssey")
 
@@ -317,13 +315,14 @@
     $.get('/words', function(results) {
       var words = results['words'];
       console.log(words)
-      $("#word_search").autocomplete({source: words});
+      $("#word-search").autocomplete({source: words});
     });
 
     // CUSTOM FUNCTIONS  /////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
 
+    // Clear the screen in preparation for new information
     function clearScreen() {
       d3.select("svg").remove();
       displayIntensity('options=clear');  
@@ -331,13 +330,13 @@
       $('#references_title').html('');
     }
 
-
+    // Display the information selected by the user 
     function displayHeader(searchType, searchParameter) {
       var msg = searchType + ":<br>" + searchParameter;
       $('#header').html(msg);
     }
     
-
+    // Display references related to whatever the user clicked on 
     function displayRefs(url) {
 
       $("#references_title").html("References");
@@ -383,7 +382,7 @@
 
     }
 
-
+    // When the user clicks on a topic, display the words in the topic using D3
     function getClusterD3(cluster_id) {
 
       url = '/d3topic.json?cluster_id=' + cluster_id;
@@ -394,7 +393,7 @@
     // Event handlers to generate intensity or D3 when user manually submits
     // a word or a coordinate or clicks on a reference
 
-    // Location --> d3 + references 
+    // Location submission --> d3 + references 
 
     $("#submit-xyz").on("click", function(evt) {
 
@@ -431,7 +430,7 @@
 
       clearScreen();
 
-      var word = $('#word_search').val();
+      var word = $('#word-search').val();
       displayHeader(searchType="Word", searchParameter=word);
 
       $.get('/d3word.json?word=' + word, initializeD3)
@@ -482,7 +481,7 @@
             .size([width, height])
             .on("tick", tick);
 
-        var svg = d3.select("#d3_here").append("svg")
+        var svg = d3.select("#d3-here").append("svg")
             .attr("width", width)
             .attr("height", height);
 
@@ -544,7 +543,7 @@
         function color(d) {   // node colors 
           return  d._children ? "#3182bd" //  collapsed package (no longer in use)
               : d.children ? "#4B484E" // expanded package //
-              : "#ffae42"; // leaf node#4B484E
+              : "#ffae42"; // leaf node
         }
 
         // Event handler to deal with node clicks: 

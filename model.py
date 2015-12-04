@@ -127,7 +127,7 @@ class Activation(db.Model):
 
             Args: x, y & z location coordinates (floats between -100-100)
 
-            Examples: 
+            Examples:
 
             >>> Activation.get_pmids_from_xyz(-60, 0, -30, 3)
             Getting all studies with radius 3
@@ -140,7 +140,7 @@ class Activation(db.Model):
 
         """
 
-        # If the radius is provided, use it get studies reporting activation
+        # If the radius is provided, use it to get studies reporting activation
         # in locations within +/- n millimeters of xyz
         if radius:
             print "Getting all studies with radius", radius

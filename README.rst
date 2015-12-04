@@ -18,11 +18,17 @@ Data model
 The data are seeded into seven tables: 
 
 Location:    individual x-y-z locations
+
 Study:       individual studies
+
 Activation:  location-study associations
+
 Term:        individual words
+
 StudyTerm:   associations between studies and words
+
 TermCluster: associations between words and topic clusters
+
 Cluster:     topic cluster IDs
 
 User interactions
@@ -50,3 +56,4 @@ Clicking on a word or word cluster, or manually entering a word into the search 
 Users can ask for more information about a particular reference by clicking on the button next to it. This will display information about locations activated in related studies, words/topics associated with that set of studies, and the associated references. 
 
 .. image:: study.jpg
+

@@ -1,5 +1,5 @@
 ################################################################################
-# Brain Odyssey unit tests
+# Brain Odyssey tests
 ################################################################################
 
 import unittest
@@ -102,6 +102,11 @@ class MyAppUnitTestCast(unittest.TestCase):
 
 
 # ## INTENSITY ROUTES ########################################################
+
+# (Notes & todo: 
+# Best practices for integration test: don't use actual data
+# Mock out results with a mocking framework  
+# Test what happens when we feed in a word that is not in the database) 
 
     def test_intensity_from_word(self):
         result = self.client.get('/intensity?word=pain&options=word')
